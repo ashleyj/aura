@@ -23,9 +23,9 @@ import org.robovm.llvm.Target;
  *
  */
 public enum OS {
-    linux("linux", "linux"), macosx("macosx10.7.0", "10.7"), ios("ios5.0.0", "5.0");
+    linux("linux", "linux"), macosx("macosx10.7.0", "10.7"), ios("ios5.0.0", "5.0"), freebsd("freebsd","freebsd");
     
-    public enum Family {linux, darwin}
+    public enum Family {linux, darwin, freebsd}
 
     private final String llvmName;
     private final String minVersion;
@@ -44,7 +44,11 @@ public enum OS {
     }
     
     public Family getFamily() {
-        return this == linux ? Family.linux : Family.darwin;
+		switch (this) {
+			case freebsd: return Family.freebsd;
+			case linux: return Family.linux;
+		}
+        return Family.darwin;
     }
     
     public static OS getDefaultOS() {
@@ -55,6 +59,9 @@ public enum OS {
         if (hostTriple.contains("darwin") || hostTriple.contains("apple")) {
             return OS.macosx;
         }
+		if (hostTriple.contains("freebsd")) {
+			return OS.freebsd;
+		}
         throw new IllegalArgumentException("Unrecognized OS in host triple: " + hostTriple);
     }
 }

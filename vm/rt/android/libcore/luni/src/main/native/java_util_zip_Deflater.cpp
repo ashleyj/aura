@@ -128,7 +128,10 @@ extern "C" void Java_java_util_zip_Deflater_setLevelsImpl(JNIEnv* env, jobject, 
     // necessary to flush, but the Java API ensures that we only get here if there's nothing
     // to flush. To be on the safe side, make sure that we're not pointing to a no longer valid
     // buffer.
+// FreeBSD clang complains about this reinterpretation
+#ifndef FREEBSD
     stream->stream.next_out = reinterpret_cast<Bytef*>(NULL);
+#endif
     stream->stream.avail_out = 0;
     int err = deflateParams(&stream->stream, level, strategy);
     if (err != Z_OK) {

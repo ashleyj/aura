@@ -28,6 +28,11 @@ set(SRC
 
 # The code in unwind.c doesn't work properly if compiled with tail call optimizations
 set_property(SOURCE unwind.c PROPERTY COMPILE_FLAGS "-fno-optimize-sibling-calls")
+#For FreeBSD
+if(FREEBSD)
+	set_property(SOURCE method.c PROPERTY COMPILE_FLAGS "-I/usr/local/include")
+	set_property(SOURCE proxy.c PROPERTY COMPILE_FLAGS "-I/usr/local/include")
+ENDIF()
 
 add_library(robovm-core STATIC ${SRC})
 add_dependencies(robovm-core extgc)

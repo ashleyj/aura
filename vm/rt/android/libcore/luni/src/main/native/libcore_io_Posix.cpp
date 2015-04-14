@@ -55,6 +55,11 @@
 #include <termios.h>
 #include <unistd.h>
 
+#if defined(FREEBSD)
+#include <sys/statvfs.h>
+#include <sys/ucred.h>
+#endif
+
 #if defined(__APPLE__)
 // RoboVM note: For SOL_LOCAL, LOCAL_PEERPID on Darwin.
   #include <sys/un.h>
@@ -252,7 +257,7 @@ static jobject makeStructStat(JNIEnv* env, const struct stat& sb) {
 }
 
 static jobject makeStructStatVfs(JNIEnv* env, const struct statvfs& sb) {
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(FREEBSD)
     // Mac OS has no f_namelen field in struct statfs.
     jlong max_name_length = 255; // __DARWIN_MAXNAMLEN
 #else
@@ -287,7 +292,7 @@ static jobject makeStructTimeval(JNIEnv* env, const struct timeval& tv) {
 }
 
 // RoboVM note: Darwin doesn't have a compatible struct ucred
-#if !defined(__APPLE__)
+#if !defined(__APPLE__) && !defined(FREEBSD)
 static jobject makeStructUcred(JNIEnv* env, const struct ucred& u) {
   static jmethodID ctor = env->GetMethodID(JniConstants::structUcredClass, "<init>", "(III)V");
   return env->NewObject(JniConstants::structUcredClass, ctor, u.pid, u.uid, u.gid);
@@ -373,6 +378,11 @@ class Passwd {
 public:
     Passwd(JNIEnv* env) : mEnv(env), mResult(NULL) {
         mBufferSize = sysconf(_SC_GETPW_R_SIZE_MAX);
+		// sysconf(_SC_GETPW_R_SIZE_MAX) returns -1 on FreeBSD
+		// setting this value to 256 should cover most use cases
+		if (mBufferSize == -1L) {
+			mBufferSize = 256;
+		}
         mBuffer.reset(new char[mBufferSize]);
     }
 
@@ -476,7 +486,7 @@ extern "C" void Java_libcore_io_Posix_connect(JNIEnv* env, jobject, jobject java
     if (!inetAddressToSockaddr(env, javaAddress, port, ss, sa_len)) {
         return;
     }
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(FREEBSD)
     // RoboVM note: On Linux we can just call connect() with an AF_UNSPEC address to "disconnect" a datagram socket.
     // On Darwin this is supposed to work too but fails with EINVAL probably because sa_len in the connect() call
     // below is incorrect. The docs also says that another option is to use an invalid address so that's what we do.
@@ -489,7 +499,7 @@ extern "C" void Java_libcore_io_Posix_connect(JNIEnv* env, jobject, jobject java
 #endif
     const sockaddr* sa = reinterpret_cast<const sockaddr*>(&ss);
     int rc = NET_FAILURE_RETRY(env, int, connect, javaFd, sa, sa_len);
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(FREEBSD)
     // RoboVM note: If this was a "disconnect" EADDRNOTAVAIL will be set and we need to ignore the thrown exception.
     if (rc == -1 && disconnect && errno == EADDRNOTAVAIL) {
         env->ExceptionClear();
@@ -567,7 +577,11 @@ extern "C" jint Java_libcore_io_Posix_fcntlFlock(JNIEnv* env, jobject, jobject j
     static jfieldID lenFid = env->GetFieldID(JniConstants::structFlockClass, "l_len", "J");
     static jfieldID pidFid = env->GetFieldID(JniConstants::structFlockClass, "l_pid", "I");
 
+#if defined(FREEBSD)
+	struct flock lock;
+#else
     struct flock64 lock;
+#endif
     memset(&lock, 0, sizeof(lock));
     lock.l_type = env->GetShortField(javaFlock, typeFid);
     lock.l_whence = env->GetShortField(javaFlock, whenceFid);
@@ -589,7 +603,11 @@ extern "C" jint Java_libcore_io_Posix_fcntlFlock(JNIEnv* env, jobject, jobject j
 
 extern "C" void Java_libcore_io_Posix_fdatasync(JNIEnv* env, jobject, jobject javaFd) {
     int fd = jniGetFDFromFileDescriptor(env, javaFd);
+#if defined(FREEBSD)
+    throwIfMinusOne(env, "fsync", TEMP_FAILURE_RETRY(fsync(fd)));
+#else
     throwIfMinusOne(env, "fdatasync", TEMP_FAILURE_RETRY(fdatasync(fd)));
+#endif
 }
 
 extern "C" jobject Java_libcore_io_Posix_fstat(JNIEnv* env, jobject, jobject javaFd) {
@@ -621,7 +639,11 @@ extern "C" void Java_libcore_io_Posix_fsync(JNIEnv* env, jobject, jobject javaFd
 
 extern "C" void Java_libcore_io_Posix_ftruncate(JNIEnv* env, jobject, jobject javaFd, jlong length) {
     int fd = jniGetFDFromFileDescriptor(env, javaFd);
+#if defined(FREEBSD)
+    throwIfMinusOne(env, "ftruncate", TEMP_FAILURE_RETRY(ftruncate(fd, length)));
+#else
     throwIfMinusOne(env, "ftruncate", TEMP_FAILURE_RETRY(ftruncate64(fd, length)));
+#endif
 }
 
 extern "C" jstring Java_libcore_io_Posix_gai_1strerror(JNIEnv* env, jobject, jint error) {
@@ -817,7 +839,7 @@ extern "C" jobject Java_libcore_io_Posix_getsockoptTimeval(JNIEnv* env, jobject,
 }
 
 // RoboVM note: Darwin doesn't have a compatible struct ucred
-#if !defined(__APPLE__)
+#if !defined(__APPLE__) && !defined(FREEBSD)
 extern "C" jobject Java_libcore_io_Posix_getsockoptUcred(JNIEnv* env, jobject, jobject javaFd, jint level, jint option) {
   int fd = jniGetFDFromFileDescriptor(env, javaFd);
   struct ucred u;
@@ -829,6 +851,12 @@ extern "C" jobject Java_libcore_io_Posix_getsockoptUcred(JNIEnv* env, jobject, j
     return NULL;
   }
   return makeStructUcred(env, u);
+}
+#elif defined(FREEBSD)
+//TODO - fix this
+extern "C" jobject Java_libcore_io_Posix_getsockoptUcred(JNIEnv* env, jobject, jobject javaFd, jint level, jint option) {
+      jniThrowExceptionFmt(env, "java/lang/UnsupportedOperationException", "level = %d, option = %d", level, option);
+      return NULL;
 }
 #else
 // RoboVM note: Hacked up version of Posix.getsockoptUcred() which only supports SO_PEERCRED for now.
@@ -859,7 +887,7 @@ extern "C" jobject Java_libcore_io_Posix_getsockoptUcred(JNIEnv* env, jobject, j
 #endif
 
 // RoboVM note: Darwin doesn't have gettid()
-#if !defined(__APPLE__)
+#if !defined(__APPLE__) && !defined(FREEBSD)
 extern "C" jint Java_libcore_io_Posix_gettid(JNIEnv*, jobject) {
   // Neither bionic nor glibc exposes gettid(2).
   return syscall(__NR_gettid);
@@ -944,7 +972,11 @@ extern "C" void Java_libcore_io_Posix_listen(JNIEnv* env, jobject, jobject javaF
 
 extern "C" jlong Java_libcore_io_Posix_lseek(JNIEnv* env, jobject, jobject javaFd, jlong offset, jint whence) {
     int fd = jniGetFDFromFileDescriptor(env, javaFd);
+#if defined(FREEBSD)
+    return throwIfMinusOne(env, "lseek", TEMP_FAILURE_RETRY(lseek(fd, offset, whence)));
+#else
     return throwIfMinusOne(env, "lseek", TEMP_FAILURE_RETRY(lseek64(fd, offset, whence)));
+#endif
 }
 
 extern "C" jobject Java_libcore_io_Posix_lstat(JNIEnv* env, jobject, jstring javaPath) {
@@ -1084,7 +1116,11 @@ extern "C" jint Java_libcore_io_Posix_preadBytes(JNIEnv* env, jobject, jobject j
         return -1;
     }
     int fd = jniGetFDFromFileDescriptor(env, javaFd);
+#if defined(FREEBSD)
+    return throwIfMinusOne(env, "pread", TEMP_FAILURE_RETRY(pread(fd, bytes.get() + byteOffset, byteCount, offset)));
+#else
     return throwIfMinusOne(env, "pread", TEMP_FAILURE_RETRY(pread64(fd, bytes.get() + byteOffset, byteCount, offset)));
+#endif
 }
 
 extern "C" jint Java_libcore_io_Posix_pwriteBytes(JNIEnv* env, jobject, jobject javaFd, jbyteArray javaBytes, jint byteOffset, jint byteCount, jlong offset) {
@@ -1093,7 +1129,11 @@ extern "C" jint Java_libcore_io_Posix_pwriteBytes(JNIEnv* env, jobject, jobject 
         return -1;
     }
     int fd = jniGetFDFromFileDescriptor(env, javaFd);
+#if defined(FREEBSD)
+    return throwIfMinusOne(env, "pwrite", TEMP_FAILURE_RETRY(pwrite(fd, bytes.get() + byteOffset, byteCount, offset)));
+#else
     return throwIfMinusOne(env, "pwrite", TEMP_FAILURE_RETRY(pwrite64(fd, bytes.get() + byteOffset, byteCount, offset)));
+#endif
 }
 
 extern "C" jint Java_libcore_io_Posix_readBytes(JNIEnv* env, jobject, jobject javaFd, jobject javaBytes, jint byteOffset, jint byteCount) {

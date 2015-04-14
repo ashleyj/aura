@@ -38,6 +38,9 @@ Darwin)
 Linux)
   TARGETS="linux-x86_64 linux-x86"
   ;;
+FreeBSD)
+  TARGETS="freebsd-x86_64"
+  ;;
 *)
   echo "Unsupported OS: $OS"
   exit 1
@@ -62,6 +65,9 @@ if [ $(uname) = 'Darwin' ]; then
   else
     CXX=$(which clang++)
   fi
+elif $(uname) = 'FreeBSD' ]; then
+	CC=$(which clang)
+	CXX=$(which clang++)
 else
   CC=$(which gcc)
   CXX=$(which g++)

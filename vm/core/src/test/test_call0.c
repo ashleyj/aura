@@ -228,13 +228,13 @@ static void testCall0ManyArgsOfEach(CuTest* tc) {
 }
 
 
-#if defined(RVM_X86_64) && (defined(DARWIN) || defined(LINUX))
+#if defined(RVM_X86_64) && (defined(DARWIN) || defined(LINUX) || defined(FREEBSD))
 /*
  * On x86_64 Darwin and Linux the stack must be 16-byte aligned before a function call. 
  * This means that (%rsp & 0xf) == 8 must be true when that function is entered as CALL 
  * pushes the return address.
  */
-#ifdef LINUX
+#if defined(LINUX) || defined(FREEBSD)
 asm("stackPointer:     \n\
         mov %rsp,%rax  \n\
         ret            \n\
@@ -287,7 +287,7 @@ static void testCall0StackAlignment2(CuTest* tc) {
  * a function call. This means that (%esp & 0xf) == 0xc must be true when that function is 
  * entered as CALL pushes the return address.
  */
-#ifdef LINUX
+#if defined(LINUX) || defined(FREEBSD)
 asm("stackPointer:     \n\
         mov %esp,%eax  \n\
         ret            \n\

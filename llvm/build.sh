@@ -47,6 +47,9 @@ Darwin)
 Linux)
   TARGETS="linux-x86_64 linux-x86"
   ;;
+FreeBSD)
+  TARGETS="freebsd-x86_64"
+  ;;
 Windows)
   TARGETS="windows-x86_64" # windows-x86"
   ;;
@@ -79,6 +82,10 @@ Darwin)
 Linux)
   CC=$(which gcc)
   CXX=$(which g++)
+  ;;
+FreeBSD)
+  CC=$(which clang)
+  CXX=$(which clang++)
   ;;
 Windows)
   CC=$(which x86_64-w64-mingw32-gcc)

@@ -23,6 +23,9 @@
 #else
 #   include <semaphore.h>
 #endif
+#if defined(FREEBSD)
+#include <sys/ucontext.h>
+#endif
 #include <errno.h>
 #include "private.h"
 
