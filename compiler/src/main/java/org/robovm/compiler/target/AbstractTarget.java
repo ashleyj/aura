@@ -98,8 +98,14 @@ public abstract class AbstractTarget implements Target {
         if (config.isSkipInstall()) {
             libs.add("-lrobovm-debug" + libSuffix);
         }
-        libs.addAll(Arrays.asList(
-                "-lrobovm-core" + libSuffix, "-lgc" + libSuffix, "-lpthread", "-ldl", "-lm"));
+		if (config.getOs().getFamily() == OS.Family.freebsd) {
+			libs.addAll(Arrays.asList(
+					"-lrobovm-core" + libSuffix, "-lgc" + libSuffix, "-lpthread", "-lm","-lc++", "-lssl"));
+		} else {
+			libs.addAll(Arrays.asList(
+					"-lrobovm-core" + libSuffix, "-lgc" + libSuffix, "-lpthread", "-ldl", "-lm"));
+
+		}
         if (config.getOs().getFamily() == OS.Family.linux) {
             libs.add("-lrt");
         }

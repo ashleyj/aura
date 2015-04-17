@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/local/bin/bash
 
 SELF=$(basename $0)
 BASE=$(cd $(dirname $0); pwd -P)
@@ -52,6 +52,9 @@ if [ "x$TARGETS" = 'x' ]; then
   Linux)
     TARGETS="linux-x86_64 linux-x86"
     ;;
+  FreeBSD)
+    TARGETS="freebsd-x86_64"
+    ;;
   *)
     echo "Unsupported OS: $OS"
     exit 1
@@ -64,7 +67,7 @@ fi
 
 # Validate targets
 for T in $TARGETS; do
-  if ! [[ $T =~ (macosx-(x86_64|x86))|(ios-(x86_64|x86|thumbv7|arm64))|(linux-(x86_64|x86)) ]] ; then
+  if ! [[ $T =~ (macosx-(x86_64|x86))|(ios-(x86_64|x86|thumbv7|arm64))|(linux-(x86_64|x86))|(freebsd-(x86_64)) ]] ; then
     echo "Unsupported target: $T"
     exit 1
   fi
@@ -98,6 +101,9 @@ if [ $(uname) = 'Darwin' ]; then
   else
     CXX=$(which clang++)
   fi
+elif [ $(uname) = 'FreeBSD' ]; then
+	CC=$(which clang)
+	CXX=$(which clang++)
 else
   CC=$(which gcc)
   CXX=$(which g++)

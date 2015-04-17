@@ -63,7 +63,7 @@ extern "C" void Java_libcore_io_OsConstants_initConstants(JNIEnv* env, jclass c)
     initConstant(env, c, "AI_PASSIVE", AI_PASSIVE);
     initConstant(env, c, "AI_V4MAPPED", AI_V4MAPPED);
 // RoboVM note: Darwin doesn't have sys/capability.h
-#if !defined(__APPLE__)
+#if !defined(__APPLE__) && !defined(FREEBSD)
     initConstant(env, c, "CAP_AUDIT_CONTROL", CAP_AUDIT_CONTROL);
     initConstant(env, c, "CAP_AUDIT_WRITE", CAP_AUDIT_WRITE);
     initConstant(env, c, "CAP_CHOWN", CAP_CHOWN);
@@ -113,7 +113,9 @@ extern "C" void Java_libcore_io_OsConstants_initConstants(JNIEnv* env, jclass c)
     initConstant(env, c, "EAI_FAIL", EAI_FAIL);
     initConstant(env, c, "EAI_FAMILY", EAI_FAMILY);
     initConstant(env, c, "EAI_MEMORY", EAI_MEMORY);
+#if defined(EAI_NODATA)
     initConstant(env, c, "EAI_NODATA", EAI_NODATA);
+#endif
     initConstant(env, c, "EAI_NONAME", EAI_NONAME);
 #if defined(EAI_OVERFLOW)
     initConstant(env, c, "EAI_OVERFLOW", EAI_OVERFLOW);
@@ -157,7 +159,9 @@ extern "C" void Java_libcore_io_OsConstants_initConstants(JNIEnv* env, jclass c)
     initConstant(env, c, "ENETUNREACH", ENETUNREACH);
     initConstant(env, c, "ENFILE", ENFILE);
     initConstant(env, c, "ENOBUFS", ENOBUFS);
+#if defined(ENODATA)
     initConstant(env, c, "ENODATA", ENODATA);
+#endif
     initConstant(env, c, "ENODEV", ENODEV);
     initConstant(env, c, "ENOENT", ENOENT);
     initConstant(env, c, "ENOEXEC", ENOEXEC);
@@ -167,8 +171,10 @@ extern "C" void Java_libcore_io_OsConstants_initConstants(JNIEnv* env, jclass c)
     initConstant(env, c, "ENOMSG", ENOMSG);
     initConstant(env, c, "ENOPROTOOPT", ENOPROTOOPT);
     initConstant(env, c, "ENOSPC", ENOSPC);
+#if !defined(FREEBSD)
     initConstant(env, c, "ENOSR", ENOSR);
     initConstant(env, c, "ENOSTR", ENOSTR);
+#endif
     initConstant(env, c, "ENOSYS", ENOSYS);
     initConstant(env, c, "ENOTCONN", ENOTCONN);
     initConstant(env, c, "ENOTDIR", ENOTDIR);
@@ -189,7 +195,9 @@ extern "C" void Java_libcore_io_OsConstants_initConstants(JNIEnv* env, jclass c)
     initConstant(env, c, "ESPIPE", ESPIPE);
     initConstant(env, c, "ESRCH", ESRCH);
     initConstant(env, c, "ESTALE", ESTALE);
+#if defined(ETIME)
     initConstant(env, c, "ETIME", ETIME);
+#endif
     initConstant(env, c, "ETIMEDOUT", ETIMEDOUT);
     initConstant(env, c, "ETXTBSY", ETXTBSY);
 #if EWOULDBLOCK != EAGAIN
@@ -238,7 +246,9 @@ extern "C" void Java_libcore_io_OsConstants_initConstants(JNIEnv* env, jclass c)
 #endif
     initConstant(env, c, "IFF_MULTICAST", IFF_MULTICAST);
     initConstant(env, c, "IFF_NOARP", IFF_NOARP);
+#if defined(IFF_NOTRAILERS)
     initConstant(env, c, "IFF_NOTRAILERS", IFF_NOTRAILERS);
+#endif
     initConstant(env, c, "IFF_POINTOPOINT", IFF_POINTOPOINT);
 #if defined(IFF_PORTSEL)
     initConstant(env, c, "IFF_PORTSEL", IFF_PORTSEL);
@@ -407,8 +417,10 @@ extern "C" void Java_libcore_io_OsConstants_initConstants(JNIEnv* env, jclass c)
     initConstant(env, c, "SO_KEEPALIVE", SO_KEEPALIVE);
     initConstant(env, c, "SO_LINGER", SO_LINGER);
     initConstant(env, c, "SO_OOBINLINE", SO_OOBINLINE);
+#if !defined(FREEBSD)
     initConstant(env, c, "SO_PASSCRED", SO_PASSCRED);
     initConstant(env, c, "SO_PEERCRED", SO_PEERCRED);
+#endif
     initConstant(env, c, "SO_RCVBUF", SO_RCVBUF);
     initConstant(env, c, "SO_RCVLOWAT", SO_RCVLOWAT);
     initConstant(env, c, "SO_RCVTIMEO", SO_RCVTIMEO);
@@ -502,7 +514,9 @@ extern "C" void Java_libcore_io_OsConstants_initConstants(JNIEnv* env, jclass c)
     initConstant(env, c, "_SC_OPEN_MAX", _SC_OPEN_MAX);
     initConstant(env, c, "_SC_PAGESIZE", _SC_PAGESIZE);
     initConstant(env, c, "_SC_PAGE_SIZE", _SC_PAGE_SIZE);
+#if defined(_SC_PASS_MAX)
     initConstant(env, c, "_SC_PASS_MAX", _SC_PASS_MAX);
+#endif
 #if defined(_SC_PHYS_PAGES)
     initConstant(env, c, "_SC_PHYS_PAGES", _SC_PHYS_PAGES);
 #endif
@@ -535,10 +549,12 @@ extern "C" void Java_libcore_io_OsConstants_initConstants(JNIEnv* env, jclass c)
     initConstant(env, c, "_SC_TTY_NAME_MAX", _SC_TTY_NAME_MAX);
     initConstant(env, c, "_SC_TZNAME_MAX", _SC_TZNAME_MAX);
     initConstant(env, c, "_SC_VERSION", _SC_VERSION);
+#if !defined(FREEBSD)
     initConstant(env, c, "_SC_XBS5_ILP32_OFF32", _SC_XBS5_ILP32_OFF32);
     initConstant(env, c, "_SC_XBS5_ILP32_OFFBIG", _SC_XBS5_ILP32_OFFBIG);
     initConstant(env, c, "_SC_XBS5_LP64_OFF64", _SC_XBS5_LP64_OFF64);
     initConstant(env, c, "_SC_XBS5_LPBIG_OFFBIG", _SC_XBS5_LPBIG_OFFBIG);
+#endif
     initConstant(env, c, "_SC_XOPEN_CRYPT", _SC_XOPEN_CRYPT);
     initConstant(env, c, "_SC_XOPEN_ENH_I18N", _SC_XOPEN_ENH_I18N);
     initConstant(env, c, "_SC_XOPEN_LEGACY", _SC_XOPEN_LEGACY);

@@ -45,6 +45,9 @@ public class NativeLibrary {
         } else if (osProp.startsWith("linux")) {
             os = "linux";
             ext = "so";
+        } else if (osProp.startsWith("freebsd")) {
+            os = "freebsd";
+            ext = "so";
         } else if (osProp.startsWith("windows")) {
             os = "windows";
             ext = "dll";

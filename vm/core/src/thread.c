@@ -184,6 +184,13 @@ static void* getStackAddress(void) {
     while (!isGuardPage(result - pageSize)) {
         result -= pageSize;
     }
+#elif defined(FREEBSD)
+	size_t stackSize = 0;
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_get_np(self, &attr);
+	pthread_attr_getstacksize(&attr, &stackSize);	
+	result += stackSize;
 #else
     size_t stackSize = 0;
     size_t guardSize = 0;

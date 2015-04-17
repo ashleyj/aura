@@ -70,7 +70,6 @@ static inline ssize_t sendfile(int out_fd, int in_fd, off_t* offset, size_t coun
 static inline int mincore(void* addr, size_t length, unsigned char* vec) {
   return mincore(addr, length, reinterpret_cast<char*>(vec));
 }
-
 // RoboVM note: Start change. libcore uses statvfs now instead of statfs.
 #if 0
 // For statfs(3).
@@ -87,7 +86,26 @@ static inline int mincore(void* addr, size_t length, unsigned char* vec) {
 #define SO_PASSCRED (_SO_CUSTOM_BASE + 0)
 #define SO_PEERCRED (_SO_CUSTOM_BASE + 1)
 // RoboVM note: End change.
+#elif defined(FREEBSD)
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/uio.h>
 
+#define bswap_16 bswap16
+#define bswap_32 bswap32
+#define bswap_64 bswap64
+static inline ssize_t sendfile(int out_fd, int in_fd, off_t* offset, size_t count) {
+  int result = sendfile(in_fd, out_fd, *offset, count, NULL, NULL, 0);
+  if (result == -1) {
+    return -1;
+  }
+  return count;
+}
+
+#include <sys/mman.h>
+static inline int mincore(void* addr, size_t length, unsigned char* vec) {
+  return mincore(addr, length, reinterpret_cast<char*>(vec));
+}
 #else
 
 // Bionic or glibc.

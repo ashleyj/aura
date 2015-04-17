@@ -25,7 +25,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#if defined(DARWIN)
+#if defined(DARWIN) || defined(FREEBSD)
 #   include <net/if_dl.h>
 #   include <sys/sockio.h>
 #else
@@ -153,7 +153,7 @@ jint Java_java_net_NetworkInterface_getMTU(Env* env, Class* cls, Object* interfa
     return ifreq.ifr_mtu;
 }
 
-#if defined(DARWIN)
+#if defined(DARWIN) || defined(FREEBSD)
 static jboolean getHardwareAddressIterator(Env* env, struct ifaddrs *ia, void* data) {
     ByteArray** resultPtr = (ByteArray**) data;
     if (ia->ifa_addr->sa_family == AF_LINK) {
@@ -176,8 +176,8 @@ ByteArray* Java_java_net_NetworkInterface_getHardwareAddress(Env* env, Class* cl
         return NULL;
     }
     ByteArray* result = NULL;
-#if defined(DARWIN)
-    // Darwin doesn't have SIOCGIFHWADDR so we need to use getifaddrs() instead.
+#if defined(DARWIN) || defined(FREEBSD)
+    // Darwin and FreeBSD don't have SIOCGIFHWADDR so we need to use getifaddrs() instead.
     iterateAddrInfo(env, name, getHardwareAddressIterator, &result);
 #else
     struct ifreq ifreq;
