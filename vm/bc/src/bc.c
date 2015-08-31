@@ -46,15 +46,16 @@ extern char** _bcBootclasspath;
 extern char** _bcClasspath;
 extern void* _bcBootClassesHash;
 extern void* _bcClassesHash;
+extern void* _bcStrippedMethodStubs;
 extern void* _bcRuntimeData;
-static Class* loadBootClass(Env*, const char*, ClassLoader*);
-static Class* loadUserClass(Env*, const char*, ClassLoader*);
+static Class* loadBootClass(Env*, const char*, Object*);
+static Class* loadUserClass(Env*, const char*, Object*);
 static void classInitialized(Env*, Class*);
 static Interface* loadInterfaces(Env*, Class*);
 static Field* loadFields(Env*, Class*);
 static Method* loadMethods(Env*, Class*);
 static Class* findClassAt(Env*, void*);
-static Class* createClass(Env*, ClassInfoHeader*, ClassLoader*);
+static Class* createClass(Env*, ClassInfoHeader*, Object*);
 static jboolean exceptionMatch(Env* env, TrycatchContext*);
 static ObjectArray* listBootClasses(Env*, Class*);
 static ObjectArray* listUserClasses(Env*, Class*);
@@ -63,7 +64,7 @@ static VM* vm = NULL;
 static jint addressClassLookupsCount = 0;
 static AddressClassLookup* addressClassLookups = NULL;
 
-int main(int argc, char* argv[]) {
+static void initOptions() {
     options.mainClass = (char*) _bcMainClass;
     options.rawBootclasspath = _bcBootclasspath;
     options.rawClasspath = _bcClasspath;
@@ -80,6 +81,11 @@ int main(int argc, char* argv[]) {
     options.runtimeData = &_bcRuntimeData;
     options.listBootClasses = listBootClasses;
     options.listUserClasses = listUserClasses;
+}
+
+static int bcmain(int argc, char* argv[]) {
+    initOptions();
+
     if (!rvmInitOptions(argc, argv, &options, FALSE)) {
         fprintf(stderr, "rvmInitOptions(...) failed!\n");
         return 1;
@@ -95,32 +101,41 @@ int main(int argc, char* argv[]) {
     return result;
 }
 
-static ClassInfoHeader** getClassInfosBase(void* hash) {
-    hash += sizeof(jint); // Skip count
-    jint size = ((uint16_t*) hash)[0];
-#ifdef _LP64
-    ClassInfoHeader** base  = hash + (size << 1) + 4;
-#else
-    ClassInfoHeader** base  = hash + (size << 1) + 4;
-#endif
-    return base;
+int __attribute__ ((weak)) main(int argc, char* argv[]) {
+    bcmain( argc, argv );
 }
 
-static jint getClassInfosCount(void* hash) {
-    return ((jint*) hash)[0];
+static ClassInfoHeader** getClassInfosBase(void* hash) {
+    uint32_t size = ((uint32_t*) hash)[1];
+    void* base = hash
+            + sizeof(uint32_t) /* count */
+            + sizeof(uint32_t) /* size */
+            + (size << 2)
+            + sizeof(uint32_t) /* this is for the last end index in the hash */;
+    // Make sure base is properly aligned
+    return (ClassInfoHeader**) (((uintptr_t) base + sizeof(void*) - 1) & ~(sizeof(void*) - 1));
+}
+
+static uint32_t getClassInfosCount(void* hash) {
+    return ((uint32_t*) hash)[0];
 }
 
 static ClassInfoHeader* lookupClassInfo(Env* env, const char* className, void* hash) {
     ClassInfoHeader** base = getClassInfosBase(hash);
-    jint h = 0;
+
+    // Hash the class name
+    uint32_t h = 0;
     MurmurHash3_x86_32(className, strlen(className) + 1, 0x1ce79e5c, &h);
-    hash += sizeof(jint); // Skip count
-    jint size = ((uint16_t*) hash)[0];
+    uint32_t size = ((uint32_t*) hash)[1];
     h &= size - 1;
-    jint start = ((uint16_t*) hash)[h + 1];
-    jint end = ((uint16_t*) hash)[h + 1 + 1];
-    jint i;
-    for (i = start; i < end; i++) {
+
+    // Get the start and end indexes
+    hash += sizeof(uint32_t) + sizeof(uint32_t); // Skip count and size
+    uint32_t start = ((uint32_t*) hash)[h];
+    uint32_t end = ((uint32_t*) hash)[h + 1];
+
+    // Iterate through the ClassInfoHeaders between start and end
+    for (uint32_t i = start; i < end; i++) {
         ClassInfoHeader* header = base[i];
         if (header && !strcmp(header->className, className)) {
             return header;
@@ -131,8 +146,8 @@ static ClassInfoHeader* lookupClassInfo(Env* env, const char* className, void* h
 
 static void iterateClassInfos(Env* env, jboolean (*callback)(Env*, ClassInfoHeader*, MethodInfo*, void*), void* hash, void* data) {
     ClassInfoHeader** base = getClassInfosBase(hash);
-    jint count = getClassInfosCount(hash);
-    jint i = 0;
+    uint32_t count = getClassInfosCount(hash);
+    uint32_t i = 0;
     for (i = 0; i < count; i++) {
         ClassInfoHeader* header = base[i];
         if ((header->flags & CI_ERROR) == 0) {
@@ -153,13 +168,13 @@ static void iterateClassInfos(Env* env, jboolean (*callback)(Env*, ClassInfoHead
     }
 }
 
-static ObjectArray* listClasses(Env* env, Class* instanceofClazz, ClassLoader* classLoader, void* hash) {
+static ObjectArray* listClasses(Env* env, Class* instanceofClazz, Object* classLoader, void* hash) {
     if (instanceofClazz && (CLASS_IS_ARRAY(instanceofClazz) || CLASS_IS_PRIMITIVE(instanceofClazz))) {
         return NULL;
     }
     ClassInfoHeader** base = getClassInfosBase(hash);
-    jint count = getClassInfosCount(hash);
-    jint i = 0;
+    uint32_t count = getClassInfosCount(hash);
+    uint32_t i = 0;
     jint matches = count;
     TypeInfo* instanceofTypeInfo = instanceofClazz ? instanceofClazz->typeInfo : NULL;
     if (instanceofTypeInfo) {
@@ -205,7 +220,7 @@ static ObjectArray* listUserClasses(Env* env, Class* instanceofClazz) {
     return listClasses(env, instanceofClazz, systemClassLoader, _bcClassesHash);
 }
 
-static Class* loadClass(Env* env, const char* className, ClassLoader* classLoader, void* hash) {
+static Class* loadClass(Env* env, const char* className, Object* classLoader, void* hash) {
     ClassInfoHeader* header = lookupClassInfo(env, className, hash);
     if (!header) return NULL;
     if (header->flags & CI_ERROR) {
@@ -227,11 +242,11 @@ static Class* loadClass(Env* env, const char* className, ClassLoader* classLoade
     return createClass(env, header, classLoader);
 }
 
-static Class* loadBootClass(Env* env, const char* className, ClassLoader* classLoader) {
+static Class* loadBootClass(Env* env, const char* className, Object* classLoader) {
     return loadClass(env, className, classLoader, _bcBootClassesHash);
 }
 
-static Class* loadUserClass(Env* env, const char* className, ClassLoader* classLoader) {
+static Class* loadUserClass(Env* env, const char* className, Object* classLoader) {
     return loadClass(env, className, classLoader, _bcClassesHash);
 }
 
@@ -261,7 +276,7 @@ static void wrapClassNotFoundException(Env* env, const char* className) {
     }
 }
 
-static Class* createClass(Env* env, ClassInfoHeader* header, ClassLoader* classLoader) {
+static Class* createClass(Env* env, ClassInfoHeader* header, Object* classLoader) {
     ClassInfo ci;
     void* p = header;
     readClassInfo(&p, &ci);
@@ -294,14 +309,14 @@ static Class* createClass(Env* env, ClassInfoHeader* header, ClassLoader* classL
 
 static void classInitialized(Env* env, Class* clazz) {
     ClassInfoHeader* header = lookupClassInfo(env, clazz->name, 
-        !clazz->classLoader || !clazz->classLoader->parent ? _bcBootClassesHash : _bcClassesHash);
+        !clazz->classLoader || !rvmGetParentClassLoader(env, clazz->classLoader) ? _bcBootClassesHash : _bcClassesHash);
     if (!header) return;
     rvmAtomicStoreInt(&header->flags, header->flags | CI_INITIALIZED);
 }
 
 static Interface* loadInterfaces(Env* env, Class* clazz) {
     ClassInfoHeader* header = lookupClassInfo(env, clazz->name, 
-        !clazz->classLoader || !clazz->classLoader->parent ? _bcBootClassesHash : _bcClassesHash);
+        !clazz->classLoader || !rvmGetParentClassLoader(env, clazz->classLoader) ? _bcBootClassesHash : _bcClassesHash);
     if (!header) return NULL;
 
     ClassInfo ci;
@@ -330,7 +345,7 @@ error:
 
 static Field* loadFields(Env* env, Class* clazz) {
     ClassInfoHeader* header = lookupClassInfo(env, clazz->name, 
-        !clazz->classLoader || !clazz->classLoader->parent ? _bcBootClassesHash : _bcClassesHash);
+        !clazz->classLoader || !rvmGetParentClassLoader(env, clazz->classLoader) ? _bcBootClassesHash : _bcClassesHash);
     if (!header) return NULL;
 
     ClassInfo ci;
@@ -358,9 +373,20 @@ error:
     return NULL;
 }
 
+static inline jboolean isStrippedMethod(MethodInfo* mi) {
+    if (mi->impl) {
+        for (void** p = &_bcStrippedMethodStubs; *p; p++) {
+            if (mi->impl == *p) {
+                return TRUE;
+            }
+        }
+    }
+    return FALSE;
+}
+
 static Method* loadMethods(Env* env, Class* clazz) {
     ClassInfoHeader* header = lookupClassInfo(env, clazz->name, 
-        !clazz->classLoader || !clazz->classLoader->parent ? _bcBootClassesHash : _bcClassesHash);
+        !clazz->classLoader || !rvmGetParentClassLoader(env, clazz->classLoader) ? _bcBootClassesHash : _bcClassesHash);
     if (!header) return NULL;
 
     ClassInfo ci;
@@ -375,16 +401,18 @@ static Method* loadMethods(Env* env, Class* clazz) {
     for (i = 0; i < ci.methodCount; i++) {
         MethodInfo mi;
         readMethodInfo(&p, &mi);
-        Method* m = NULL;
-        if (mi.targetFnPtr) {
-            m = (Method*) rvmAllocateBridgeMethod(env, clazz, mi.name, mi.desc, mi.vtableIndex, mi.access, mi.size, mi.impl, mi.synchronizedImpl, mi.targetFnPtr, mi.attributes);
-        } else if (mi.callbackImpl) {
-            m = (Method*) rvmAllocateCallbackMethod(env, clazz, mi.name, mi.desc, mi.vtableIndex, mi.access, mi.size, mi.impl, mi.synchronizedImpl, mi.linetable, mi.callbackImpl, mi.attributes);
-        } else {
-            m = rvmAllocateMethod(env, clazz, mi.name, mi.desc, mi.vtableIndex, mi.access, mi.size, mi.impl, mi.synchronizedImpl, mi.linetable, mi.attributes);
+        if (!isStrippedMethod(&mi)) {
+            Method* m = NULL;
+            if (mi.targetFnPtr) {
+                m = (Method*) rvmAllocateBridgeMethod(env, clazz, mi.name, mi.desc, mi.vtableIndex, mi.access, mi.size, mi.impl, mi.synchronizedImpl, mi.targetFnPtr, mi.attributes);
+            } else if (mi.callbackImpl) {
+                m = (Method*) rvmAllocateCallbackMethod(env, clazz, mi.name, mi.desc, mi.vtableIndex, mi.access, mi.size, mi.impl, mi.synchronizedImpl, mi.linetable, mi.callbackImpl, mi.attributes);
+            } else {
+                m = rvmAllocateMethod(env, clazz, mi.name, mi.desc, mi.vtableIndex, mi.access, mi.size, mi.impl, mi.synchronizedImpl, mi.linetable, mi.attributes);
+            }
+            if (!m) goto error;
+            LL_PREPEND(first, m);
         }
-        if (!m) goto error;
-        LL_PREPEND(first, m);
     }
     return first;
 error:
@@ -396,8 +424,15 @@ error:
     return NULL;
 }
 
+static inline jboolean hasImpl(MethodInfo* mi) {
+    if (!mi->impl) {
+        return FALSE;
+    }
+    return !isStrippedMethod(mi);
+}
+
 static jboolean countClassesWithConcreteMethodsCallback(Env* env, ClassInfoHeader* header, MethodInfo* mi, void* d) {
-    if (mi->impl) {
+    if (hasImpl(mi)) {
         jint* count = (jint*) d;
         *count = *count + 1;
         return FALSE;
@@ -406,7 +441,7 @@ static jboolean countClassesWithConcreteMethodsCallback(Env* env, ClassInfoHeade
 }
 
 static jboolean initAddressClassLookupsCallback(Env* env, ClassInfoHeader* header, MethodInfo* mi, void* d) {
-    if (mi->impl) {
+    if (hasImpl(mi)) {
         AddressClassLookup** lookupPtr = (AddressClassLookup**) d;
         AddressClassLookup* lookup = *lookupPtr;
         if (lookup->classInfoHeader != header) {
@@ -465,7 +500,7 @@ Class* findClassAt(Env* env, void* pc) {
     ClassInfoHeader* header = result->classInfoHeader;
     Class* clazz = header->clazz;
     if (!clazz) {
-        ClassLoader* loader = NULL;
+        Object* loader = NULL;
         if (lookupClassInfo(env, header->className, _bcClassesHash) == header) {
             loader = systemClassLoader;
         }
@@ -515,7 +550,7 @@ jboolean exceptionMatch(Env* env, TrycatchContext* _tc) {
 static Class* ldcClass(Env* env, ClassInfoHeader* header) {
     Class* clazz = header->clazz;
     if (!clazz) {
-        ClassLoader* loader = NULL;
+        Object* loader = NULL;
         if (lookupClassInfo(env, header->className, _bcClassesHash) == header) {
             loader = systemClassLoader;
         }
@@ -684,6 +719,24 @@ void _bcThrowArithmeticException(Env* env) {
 void _bcThrowUnsatisfiedLinkError(Env* env, char* msg) {
     ENTER;
     rvmThrowUnsatisfiedLinkError(env, msg);
+    LEAVEV;
+}
+
+void _bcThrowUnsatisfiedLinkErrorBridgeNotBound(Env* env, const char* className,
+                                                const char* methodName, const char* methodDesc) {
+    ENTER;
+    rvmThrowNewf(env, java_lang_UnsatisfiedLinkError,
+                 "@Bridge method %s.%s%s not bound",
+                 className, methodName, methodDesc);
+    LEAVEV;
+}
+
+void _bcThrowUnsatisfiedLinkErrorOptionalBridgeNotBound(Env* env, const char* className,
+                                                const char* methodName, const char* methodDesc) {
+    ENTER;
+    rvmThrowNewf(env, java_lang_UnsatisfiedLinkError,
+                 "Optional @Bridge method %s.%s%s not bound",
+                 className, methodName, methodDesc);
     LEAVEV;
 }
 
@@ -1002,4 +1055,72 @@ void _bcHookInstrumented(DebugEnv* debugEnv, jint lineNumber, jint lineNumberOff
     rvmPopGatewayFrame(env);
     // Restore the exception if one had been thrown when this function was called.
     env->throwable = throwable;
+}
+
+jint JNI_GetDefaultJavaVMInitArgs(void* vm_args) {
+    return JNI_OK;
+}
+
+static inline jint startsWith(char* s, char* prefix) {
+    return s && strncasecmp(s, prefix, strlen(prefix)) == 0;
+}
+
+jint JNI_CreateJavaVM(JavaVM** p_vm, JNIEnv** p_env, void* pvm_args) {
+    initOptions();
+
+    JavaVMInitArgs* vmArgs = (JavaVMInitArgs*) pvm_args;
+    if (vmArgs) {
+        for (int i = 0; i < vmArgs->nOptions; i++) {
+            JavaVMOption* opt = &vmArgs->options[i];
+            if (startsWith(opt->optionString, "-rvm:")) {
+                char* arg = &opt->optionString[5];
+                rvmParseOption(arg, &options);
+            } else if (startsWith(opt->optionString, "-X")) {
+                char* arg = &opt->optionString[2];
+                rvmParseOption(arg, &options);
+            } else if (startsWith(opt->optionString, "-D")) {
+                char* arg = &opt->optionString[1];
+                rvmParseOption(arg, &options);
+            } else if (startsWith(opt->optionString, "-verbose")) {
+                rvmParseOption("log=trace", &options);
+            }
+        }
+    }
+
+    if (!rvmInitOptions(0, NULL, &options, FALSE)) {
+        return JNI_ERR;
+    }
+
+    // Start up robovm (JNI)
+    Env* env = rvmStartup(&options);
+    if (!env) {
+        return JNI_ERR;
+    }
+
+    vm = env->vm;
+
+    // Return values.
+    if (p_vm) {
+        *p_vm = &vm->javaVM;
+    }
+    if (p_env) {
+        *p_env = &env->jni;
+    }
+
+    return JNI_OK;
+}
+
+jint JNI_GetCreatedJavaVMs(JavaVM** vmBuf, jsize bufLen, jsize* nVMs) {
+    int numVms = (vm) ? 1 : 0;
+    numVms = (bufLen < 1) ? bufLen : 1;
+    if ((NULL == vmBuf) || (NULL == vm)) {
+        return JNI_ERR;
+    }
+    if (bufLen >= 1) {
+        *vmBuf = &vm->javaVM;
+    }
+    if (NULL != nVMs) {
+        *nVMs = numVms;
+    }
+    return JNI_OK;
 }

@@ -16,7 +16,7 @@ into the public domain. Both authors disclaim copyright to the source code.
 http://code.google.com/p/smhasher/
 https://github.com/yonik/java_util
 
-The RoboVM compiler includes Soot which is copyright Sable Research Group and
+The RoboVM compiler uses Soot which is copyright Sable Research Group and
 various contributors. Please see http://www.sable.mcgill.ca/soot/credits for a
 full list of contributors. LGPL 2.1 license. http://www.sable.mcgill.ca/soot/
 
@@ -57,11 +57,6 @@ The RoboVM compiler includes the Bouncy Castle Crypto APIs for Java which is
 copyright 2000 - 2013, The Legion of the Bouncy Castle Inc. and released under 
 the MIT license.
 http://www.bouncycastle.org
-
-The RoboVM compiler includes code from the OpenJDK project which is copyright
-2012, 2013, Oracle and/or its affiliates and released under the GNU General
-Public License version 2 with the "Classpath" exception.
-http://openjdk.java.net/
 
 The RoboVM compiler uses hfscompressor which is copyright 2015 RoboVM AB and
 released under the GNU General Public License version 2.

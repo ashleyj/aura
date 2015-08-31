@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,11 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
-import java.util.Properties;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.xml.parsers.DocumentBuilder;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -44,6 +38,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.AndFileFilter;
 import org.apache.commons.io.filefilter.PrefixFileFilter;
 import org.apache.commons.io.filefilter.RegexFileFilter;
+import org.apache.commons.io.filefilter.SuffixFileFilter;
 import org.robovm.compiler.CompilerException;
 import org.robovm.compiler.config.Arch;
 import org.robovm.compiler.config.Config;
@@ -62,10 +57,6 @@ import org.robovm.libimobiledevice.IDevice;
 import org.robovm.libimobiledevice.InstallationProxyClient.StatusCallback;
 import org.robovm.libimobiledevice.util.AppLauncher;
 import org.robovm.libimobiledevice.util.AppLauncherCallback;
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.w3c.dom.Text;
 
 import com.dd.plist.NSArray;
 import com.dd.plist.NSDictionary;
@@ -73,13 +64,15 @@ import com.dd.plist.NSNumber;
 import com.dd.plist.NSObject;
 import com.dd.plist.NSString;
 import com.dd.plist.PropertyListParser;
-import com.dd.plist.XMLPropertyListParser;
 
 /**
  * @author niklas
  *
  */
 public class IOSTarget extends AbstractTarget {
+    public static final String TYPE = "ios";
+
+    private static File iosSimPath;
 
     private Arch arch;
     private SDK sdk;
@@ -91,6 +84,10 @@ public class IOSTarget extends AbstractTarget {
     private File partialPListDir;
 
     public IOSTarget() {}
+
+    public String getType() {
+        return TYPE;
+    }
 
     @Override
     public Arch getArch() {
@@ -111,6 +108,21 @@ public class IOSTarget extends AbstractTarget {
 
     public static boolean isDeviceArch(Arch arch) {
         return arch == Arch.thumbv7 || arch == Arch.arm64;
+    }
+
+    public static synchronized File getIosSimPath() {
+        if (iosSimPath == null) {
+            try {
+                File path = File.createTempFile("ios-sim", "");
+                FileUtils.copyURLToFile(IOSTarget.class.getResource("/ios-sim"), path);
+                path.setExecutable(true);
+                path.deleteOnExit();
+                iosSimPath = path;
+            } catch (IOException e) {
+                throw new Error(e);
+            }
+        }
+        return iosSimPath;
     }
 
     public List<SDK> getSDKs() {
@@ -220,7 +232,7 @@ public class IOSTarget extends AbstractTarget {
 
         AppLauncher launcher = new AppLauncher(device, getAppDir()) {
             protected void log(String s, Object... args) {
-                config.getLogger().debug(s, args);
+                config.getLogger().info(s, args);
             }
         }
                 .stdout(out)
@@ -234,15 +246,15 @@ public class IOSTarget extends AbstractTarget {
                     boolean first = true;
 
                     public void success() {
-                        config.getLogger().debug("[100%%] Upload complete");
+                        config.getLogger().info("[100%%] Upload complete");
                     }
 
                     public void progress(File path, int percentComplete) {
                         if (first) {
-                            config.getLogger().debug("[  0%%] Beginning upload...");
+                            config.getLogger().info("[  0%%] Beginning upload...");
                         }
                         first = false;
-                        config.getLogger().debug("[%3d%%] Uploading %s...", percentComplete, path);
+                        config.getLogger().info("[%3d%%] Uploading %s...", percentComplete, path);
                     }
 
                     public void error(String message) {}
@@ -251,15 +263,15 @@ public class IOSTarget extends AbstractTarget {
                     boolean first = true;
 
                     public void success() {
-                        config.getLogger().debug("[100%%] Install complete");
+                        config.getLogger().info("[100%%] Install complete");
                     }
 
                     public void progress(String status, int percentComplete) {
                         if (first) {
-                            config.getLogger().debug("[  0%%] Beginning installation...");
+                            config.getLogger().info("[  0%%] Beginning installation...");
                         }
                         first = false;
-                        config.getLogger().debug("[%3d%%] %s", percentComplete, status);
+                        config.getLogger().info("[%3d%%] %s", percentComplete, status);
                     }
 
                     public void error(String message) {}
@@ -311,6 +323,17 @@ public class IOSTarget extends AbstractTarget {
         }
         ccArgs.add("-isysroot");
         ccArgs.add(sdk.getRoot().getAbsolutePath());
+        
+        // specify dynamic library loading path
+        libArgs.add("-Xlinker");
+        libArgs.add("-rpath");
+        libArgs.add("-Xlinker");
+        libArgs.add("@executable_path/Frameworks");
+        libArgs.add("-Xlinker");
+        libArgs.add("-rpath");
+        libArgs.add("-Xlinker");
+        libArgs.add("@loader_path/Frameworks");
+        
         super.doBuild(outFile, ccArgs, objectFiles, libArgs);
     }
 
@@ -333,7 +356,8 @@ public class IOSTarget extends AbstractTarget {
                 // Copy the provisioning profile
                 copyProvisioningProfile(provisioningProfile, installDir);
                 boolean getTaskAllow = provisioningProfile.getType() == Type.Development;
-                codesign(signIdentity, getOrCreateEntitlementsPList(getTaskAllow), installDir);
+                signFrameworks(installDir, getTaskAllow);
+                codesignApp(signIdentity, getOrCreateEntitlementsPList(getTaskAllow, getBundleId()), installDir);
                 // For some odd reason there needs to be a symbolic link in the
                 // root of
                 // the app bundle named CodeResources pointing at
@@ -346,7 +370,7 @@ public class IOSTarget extends AbstractTarget {
     }
 
     private void copyProvisioningProfile(ProvisioningProfile profile, File destDir) throws IOException {
-        config.getLogger().debug("Copying %s provisioning profile: %s (%s)",
+        config.getLogger().info("Copying %s provisioning profile: %s (%s)",
                 profile.getType(),
                 profile.getName(),
                 profile.getEntitlements().objectForKey("application-identifier"));
@@ -354,7 +378,7 @@ public class IOSTarget extends AbstractTarget {
     }
 
     protected void prepareLaunch(File appDir) throws IOException {
-        super.doInstall(appDir, getExecutable());
+        super.doInstall(appDir, getExecutable(), appDir);
         createInfoPList(appDir);
         generateDsym(appDir, getExecutable(), true);
 
@@ -363,17 +387,55 @@ public class IOSTarget extends AbstractTarget {
             if (config.isIosSkipSigning()) {
                 config.getLogger().warn("Skiping code signing. The resulting app will "
                         + "be unsigned and will not run on unjailbroken devices");
-                ldid(getOrCreateEntitlementsPList(true), appDir);
+                ldid(getOrCreateEntitlementsPList(true, getBundleId()), appDir);
             } else {
                 copyProvisioningProfile(provisioningProfile, appDir);
-                codesign(signIdentity, getOrCreateEntitlementsPList(true), appDir);
+                signFrameworks(appDir, true);
+                // sign the app
+                codesignApp(signIdentity, getOrCreateEntitlementsPList(true, getBundleId()), appDir);
             }
         }
     }
 
-    private void codesign(SigningIdentity identity, File entitlementsPList, File appDir) throws IOException {
-        config.getLogger().debug("Code signing using identity '%s' with fingerprint %s", identity.getName(),
+    private void signFrameworks(File appDir, boolean getTaskAllow) throws IOException {
+        // sign dynamic frameworks first
+        File frameworksDir = new File(appDir, "Frameworks");
+        if (frameworksDir.exists() && frameworksDir.isDirectory()) {
+            // Sign swift rt libs
+            for (File swiftLib : frameworksDir.listFiles()) {
+                if (swiftLib.getName().endsWith(".dylib")) {
+                    codesignSwiftLib(signIdentity, swiftLib);
+                }
+            }
+
+            // sign embedded frameworks
+            for (File framework : frameworksDir.listFiles()) {
+                if (framework.isDirectory() && framework.getName().endsWith(".framework")) {
+                    codesignCustomFramework(signIdentity, framework);
+                }
+            }
+        }
+    }
+
+    private void codesignApp(SigningIdentity identity, File entitlementsPList, File appDir) throws IOException {
+        config.getLogger().info("Code signing app using identity '%s' with fingerprint %s", identity.getName(),
                 identity.getFingerprint());
+        codesign(identity, entitlementsPList, false, false, true, appDir);
+    }
+
+    private void codesignSwiftLib(SigningIdentity identity, File swiftLib) throws IOException {
+        config.getLogger().info("Code signing swift dylib '%s' using identity '%s' with fingerprint %s", swiftLib.getName(), identity.getName(),
+                identity.getFingerprint());
+        codesign(identity, null, false, true, false, swiftLib);
+    }
+
+    private void codesignCustomFramework(SigningIdentity identity, File frameworkDir) throws IOException {
+        config.getLogger().info("Code signing framework '%s' using identity '%s' with fingerprint %s", frameworkDir.getName(), identity.getName(),
+                identity.getFingerprint());
+        codesign(identity, null, true, false, true, frameworkDir);
+    }
+
+    private void codesign(SigningIdentity identity, File entitlementsPList, boolean preserveMetadata, boolean verbose, boolean allocate, File target) throws IOException {
         List<Object> args = new ArrayList<Object>();
         args.add("-f");
         args.add("-s");
@@ -382,16 +444,24 @@ public class IOSTarget extends AbstractTarget {
             args.add("--entitlements");
             args.add(entitlementsPList);
         }
-        args.add(appDir);
-        new Executor(config.getLogger(), "codesign")
-                .addEnv("CODESIGN_ALLOCATE", ToolchainUtil.findXcodeCommand("codesign_allocate", "iphoneos"))
-                .args(args)
-                .exec();
+        if (preserveMetadata) {
+            args.add("--preserve-metadata=identifier,entitlements,resource-rules");
+        }
+        if (verbose) {
+            args.add("--verbose");
+        }
+        args.add(target);
+        Executor executor = new Executor(config.getLogger(), "codesign");
+        if (allocate) {
+            executor.addEnv("CODESIGN_ALLOCATE", ToolchainUtil.findXcodeCommand("codesign_allocate", "iphoneos"));
+        }
+        executor.args(args);
+        executor.exec();
     }
 
     private void ldid(File entitlementsPList, File appDir) throws IOException {
         File executableFile = new File(appDir, getExecutable());
-        config.getLogger().debug("Pseudo-signing %s", executableFile.getAbsolutePath());
+        config.getLogger().info("Pseudo-signing %s", executableFile.getAbsolutePath());
         List<Object> args = new ArrayList<Object>();
         if (entitlementsPList != null) {
             args.add("-S" + entitlementsPList.getAbsolutePath());
@@ -413,7 +483,7 @@ public class IOSTarget extends AbstractTarget {
         }
     }
 
-    private File getOrCreateEntitlementsPList(boolean getTaskAllow) throws IOException {
+    private File getOrCreateEntitlementsPList(boolean getTaskAllow, String bundleId) throws IOException {
         try {
             File destFile = new File(config.getTmpDir(), "Entitlements.plist");
             NSDictionary dict = null;
@@ -430,7 +500,7 @@ public class IOSTarget extends AbstractTarget {
                         dict.put(key, profileEntitlements.objectForKey(key));
                     }
                 }
-                dict.put("application-identifier", provisioningProfile.getAppIdPrefix() + "." + getBundleId());
+                dict.put("application-identifier", provisioningProfile.getAppIdPrefix() + "." + bundleId);
             }
             dict.put("get-task-allow", getTaskAllow);
             PropertyListParser.saveAsXML(dict, destFile);
@@ -470,8 +540,8 @@ public class IOSTarget extends AbstractTarget {
     }
 
     @Override
-    protected void doInstall(File installDir, String executable) throws IOException {
-        super.doInstall(installDir, getExecutable());
+    protected void doInstall(File installDir, String executable, File resourcesDir) throws IOException {
+        super.doInstall(installDir, getExecutable(), resourcesDir);
         prepareInstall(installDir);
     }
 
@@ -489,26 +559,58 @@ public class IOSTarget extends AbstractTarget {
         return process;
     }
 
-    public void createIpa(List<File> slices) throws IOException {
-        config.getLogger().debug("Creating IPA in %s", config.getInstallDir());
-        config.getInstallDir().mkdirs();
-        if (slices.size() > 1) {
-            ToolchainUtil.lipo(config, new File(config.getTmpDir(), getExecutable()), slices);
-        } else {
-            File destFile = new File(config.getTmpDir(), getExecutable());
-            FileUtils.copyFile(slices.get(0), destFile);
-            destFile.setExecutable(true, false);
-        }
-        // Use the exported_symbols file created for the first slice.
-        File exportedSymbolsFile = new File(slices.get(0).getParentFile(), "exported_symbols");
-        FileUtils.copyFile(exportedSymbolsFile, new File(config.getTmpDir(), "exported_symbols"));
+    @Override
+    public List<Arch> getDefaultArchs() {
+        return Arrays.asList(Arch.thumbv7, Arch.arm64);
+    }
 
+    public void archive() throws IOException {
+        config.getLogger().info("Creating IPA in %s", config.getInstallDir());
+        config.getInstallDir().mkdirs();
         File tmpDir = new File(config.getInstallDir(), getExecutable() + ".app");
         FileUtils.deleteDirectory(tmpDir);
         tmpDir.mkdirs();
-        super.doInstall(tmpDir, getExecutable());
+        super.doInstall(tmpDir, getExecutable(), tmpDir);
         prepareInstall(tmpDir);
-        ToolchainUtil.packageApplication(config, tmpDir, new File(config.getInstallDir(), getExecutable() + ".ipa"));
+        packageApplication(tmpDir);
+    }
+
+    private void packageApplication(File appDir) throws IOException {
+        File ipaFile = new File(config.getInstallDir(), getExecutable() + ".ipa");
+        config.getLogger().info("Packaging IPA %s from %s", ipaFile.getName(), appDir.getName());
+
+        File tmpDir = new File(config.getInstallDir(), "ipabuild");
+        FileUtils.deleteDirectory(tmpDir);
+        tmpDir.mkdirs();
+
+        File payloadDir = new File(tmpDir, "Payload");
+        payloadDir.mkdir();
+        config.getLogger().info("Copying %s to %s", appDir.getName(), payloadDir);
+        new Executor(config.getLogger(), "cp")
+                .args("-Rp", appDir, payloadDir)
+                .exec();
+
+        File frameworksDir = new File(appDir, "Frameworks");
+        if (frameworksDir.exists()){
+            String[] swiftLibs = frameworksDir.list(new AndFileFilter(
+                    new PrefixFileFilter("libswift"),
+                    new SuffixFileFilter(".dylib")));
+
+            if (swiftLibs.length > 0){
+                File swiftSupportDir = new File(tmpDir, "SwiftSupport");
+                swiftSupportDir.mkdir();
+                copySwiftLibs(Arrays.asList(swiftLibs), swiftSupportDir);
+            }
+        }
+
+        config.getLogger().info("Zipping %s to %s", tmpDir, ipaFile);
+        new Executor(Logger.NULL_LOGGER, "zip")
+                .wd(tmpDir)
+                .args("--symlinks", "--recurse-paths", ipaFile, ".")
+                .exec();
+
+        config.getLogger().info("Deleting temp dir %s", tmpDir);
+        FileUtils.deleteDirectory(tmpDir);
     }
 
     @Override
@@ -553,13 +655,18 @@ public class IOSTarget extends AbstractTarget {
     }
 
     private File createPartialInfoPlistFile(File f) throws IOException {
-        return File.createTempFile(f.getName() + "_", ".plist", partialPListDir);
+        File tmpFile = File.createTempFile(f.getName() + "_", ".plist", partialPListDir);
+        tmpFile.delete();
+        return tmpFile;
     }
 
     protected File getAppDir() {
         File dir = null;
         if (!config.isSkipInstall()) {
-            dir = config.getInstallDir();
+            dir = new File(config.getInstallDir(), getExecutable() + ".app");
+            if (!dir.exists()) {
+                dir = config.getInstallDir();
+            }
         } else {
             dir = new File(config.getTmpDir(), getExecutable() + ".app");
             dir.mkdirs();
@@ -567,6 +674,7 @@ public class IOSTarget extends AbstractTarget {
         return dir;
     }
 
+    @Override
     protected String getExecutable() {
         if (config.getIosInfoPList() != null) {
             String bundleExecutable = config.getIosInfoPList().getBundleExecutable();
@@ -737,7 +845,7 @@ public class IOSTarget extends AbstractTarget {
         File tmpInfoPlist = new File(config.getTmpDir(), "Info.plist");
         PropertyListParser.saveAsBinary(newDict, tmpInfoPlist);
 
-        config.getLogger().debug("Installing Info.plist to %s", dir);
+        config.getLogger().info("Installing Info.plist to %s", dir);
         FileUtils.copyFile(tmpInfoPlist, new File(dir, tmpInfoPlist.getName()));
     }
 
@@ -876,49 +984,5 @@ public class IOSTarget extends AbstractTarget {
                 }
             }
         }
-    }
-
-    private final static Pattern VARIABLE_PATTERN = Pattern.compile("\\$\\{([^}]+)\\}");
-
-    static void replacePropertyRefs(Node node, Properties props) {
-        if (node instanceof Text) {
-            Text el = (Text) node;
-            String value = el.getNodeValue();
-            if (value != null && value.trim().length() > 0) {
-                Matcher matcher = VARIABLE_PATTERN.matcher(value);
-                StringBuilder sb = new StringBuilder();
-                int pos = 0;
-                while (matcher.find()) {
-                    if (pos < matcher.start()) {
-                        sb.append(value.substring(pos, matcher.start()));
-                    }
-                    String key = matcher.group(1);
-                    sb.append(props.getProperty(key, matcher.group()));
-                    pos = matcher.end();
-                }
-                if (pos < value.length()) {
-                    sb.append(value.substring(pos));
-                }
-                el.setNodeValue(sb.toString());
-            }
-        }
-        NodeList children = node.getChildNodes();
-        for (int i = 0; i < children.getLength(); i++) {
-            replacePropertyRefs(children.item(i), props);
-        }
-    }
-
-    static NSObject parsePropertyList(File file, Properties props) throws Exception {
-        Properties allProps = new Properties(System.getProperties());
-        allProps.putAll(props);
-
-        Method getDocBuilder = XMLPropertyListParser.class.getDeclaredMethod("getDocBuilder");
-        getDocBuilder.setAccessible(true);
-        Method parseDocument = XMLPropertyListParser.class.getDeclaredMethod("parseDocument", Document.class);
-        parseDocument.setAccessible(true);
-        DocumentBuilder docBuilder = (DocumentBuilder) getDocBuilder.invoke(null);
-        Document doc = docBuilder.parse(file);
-        replacePropertyRefs(doc, allProps);
-        return (NSObject) parseDocument.invoke(null, doc);
     }
 }

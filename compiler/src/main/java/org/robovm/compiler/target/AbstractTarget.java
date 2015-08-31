@@ -28,16 +28,22 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.robovm.compiler.clazz.Path;
+import org.robovm.compiler.config.Arch;
 import org.robovm.compiler.config.Config;
 import org.robovm.compiler.config.OS;
 import org.robovm.compiler.config.Resource;
@@ -62,10 +68,15 @@ public abstract class AbstractTarget implements Target {
     }
     
     @Override
+    public boolean canLaunch() {
+        return true;
+    }
+
+    @Override
     public LaunchParameters createLaunchParameters() {
         return new LaunchParameters();
     }
-    
+
     public String getInstallRelativeArchivePath(Path path) {
         String name = config.getArchiveName(path);
         if (path.isInBootClasspath()) {
@@ -78,13 +89,28 @@ public abstract class AbstractTarget implements Target {
         return true;
     }
     
+    protected List<String> getTargetExportedSymbols() {
+        return Collections.emptyList();
+    }
+    
+    protected List<String> getTargetCcArgs() {
+        return Collections.emptyList();
+    }
+
+    protected List<String> getTargetLibs() {
+        return Collections.emptyList();
+    }
+
     public void build(List<File> objectFiles) throws IOException {
         File outFile = new File(config.getTmpDir(), config.getExecutableName());
         
-        config.getLogger().debug("Building executable %s", outFile);
+        config.getLogger().info("Building %s binary %s", config.getTarget().getType(), outFile);
         
         LinkedList<String> ccArgs = new LinkedList<String>();
         LinkedList<String> libs = new LinkedList<String>();
+        
+        ccArgs.addAll(getTargetCcArgs());
+        libs.addAll(getTargetLibs());
         
         String libSuffix = config.isUseDebugLibs() ? "-dbg" : "";
         
@@ -103,8 +129,7 @@ public abstract class AbstractTarget implements Target {
 					"-lrobovm-core" + libSuffix, "-lgc" + libSuffix, "-lpthread", "-lm","-lc++", "-lssl"));
 		} else {
 			libs.addAll(Arrays.asList(
-					"-lrobovm-core" + libSuffix, "-lgc" + libSuffix, "-lpthread", "-ldl", "-lm"));
-
+					"-lrobovm-core" + libSuffix, "-lgc" + libSuffix, "-lpthread", "-ldl", "-lm", "-lz"));
 		}
         if (config.getOs().getFamily() == OS.Family.linux) {
             libs.add("-lrt");
@@ -124,8 +149,9 @@ public abstract class AbstractTarget implements Target {
 //            ccArgs.add("-Wl,--print-gc-sections");
         } else if (config.getOs().getFamily() == OS.Family.darwin) {
             ccArgs.add("-ObjC");
-            File exportedSymbolsFile = new File(config.getTmpDir(), "exported_symbols");
+
             List<String> exportedSymbols = new ArrayList<String>();
+            exportedSymbols.addAll(getTargetExportedSymbols());
             if (config.isSkipInstall()) {
                 exportedSymbols.add("catch_exception_raise");
             }
@@ -135,9 +161,26 @@ public abstract class AbstractTarget implements Target {
                 // '_' to each symbol here so the user won't have to.
                 exportedSymbols.set(i, "_" + exportedSymbols.get(i));
             }
+
+            if (!config.getUnhideSymbols().isEmpty()) {
+                List<String> aliasedSymbols = new ArrayList<String>();
+                for (String symbol : config.getUnhideSymbols()) {
+                    aliasedSymbols.add("_" + symbol + " __unhidden_" + symbol);
+                }
+                File aliasedSymbolsFile = new File(config.getTmpDir(), "aliased_symbols");
+                FileUtils.writeLines(aliasedSymbolsFile, "ASCII", aliasedSymbols);
+                ccArgs.add("-Xlinker");
+                ccArgs.add("-alias_list");
+                ccArgs.add("-Xlinker");
+                ccArgs.add(aliasedSymbolsFile.getAbsolutePath());
+                exportedSymbols.add("__unhidden_*");
+            }
+
+            File exportedSymbolsFile = new File(config.getTmpDir(), "exported_symbols");
             FileUtils.writeLines(exportedSymbolsFile, "ASCII", exportedSymbols);
             ccArgs.add("-exported_symbols_list");
             ccArgs.add(exportedSymbolsFile.getAbsolutePath());
+
             ccArgs.add("-Wl,-no_implicit_dylibs");
             ccArgs.add("-Wl,-dead_strip");
         }
@@ -191,6 +234,7 @@ public abstract class AbstractTarget implements Target {
             }
         }
      
+        ccArgs.add("-fPIC");
         if (config.getOs() == OS.macosx) {
             if (!config.getFrameworks().contains("CoreServices")) {
                 libs.add("-framework");
@@ -211,7 +255,27 @@ public abstract class AbstractTarget implements Target {
         
         ToolchainUtil.link(config, ccArgs, objectFiles, libs, outFile);        
     }
-    
+
+    protected String getExecutable() {
+        return config.getExecutableName();
+    }
+
+    @Override
+    public void buildFat(Map<Arch, File> slices) throws IOException {
+        File destFile = new File(config.getTmpDir(), getExecutable());
+        List<File> files = new ArrayList<>(slices.values());
+        if (slices.size() > 1) {
+            if (config.getOs() == OS.linux) {
+                throw new UnsupportedOperationException("Fat binaries are not supported when building linux binaries");
+            }
+            config.getLogger().info("Building fat binary for archs %s", StringUtils.join(slices.keySet()));
+            ToolchainUtil.lipo(config, destFile, files);
+        } else if (!files.get(0).equals(destFile)) {
+            FileUtils.copyFile(files.get(0), destFile);
+            destFile.setExecutable(true, false);
+        }
+    }
+
     protected void copyResources(File destDir) throws IOException {
         for (Resource res : config.getResources()) {
             res.walk(new Walker() {
@@ -228,25 +292,148 @@ public abstract class AbstractTarget implements Target {
             }, destDir);
         }
     }
+    
+    protected void copyDynamicFrameworks(File destDir) throws IOException {
+        final Set<String> swiftLibraries = new HashSet<>();
+        File frameworksDir = new File(destDir, "Frameworks");
+        
+        for (String framework : config.getFrameworks()) {
+            boolean isCustomFramework = false;
+            File frameworkDir = null;
+            for (File path : config.getFrameworkPaths()) {
+                frameworkDir = new File(path, framework + ".framework");
+                if (frameworkDir.exists() && frameworkDir.isDirectory()) {
+                    isCustomFramework = true;
+                    break;
+                }
+            }
+                        
+            if (isCustomFramework) {
+                // check if this is a dynamic framework by finding
+                // at least ony dylib in the root folder
+                boolean isDynamicFramework = false;
+                for(File file: frameworkDir.listFiles()) {
+                    if(file.isFile() && isDynamicLibrary(file)) {
+                        isDynamicFramework = true;
+                        break;
+                    }
+                }
+                
+                if(isDynamicFramework) {                    
+                    config.getLogger().info("Copying framework %s from %s to %s", framework, frameworkDir, destDir);
+                    new Resource(frameworkDir).walk(new Walker() {
+                        @Override
+                        public boolean processDir(Resource resource, File dir, File destDir) throws IOException {
+                            return !(dir.getName().equals("Headers") || dir.getName().equals("PrivateHeaders")
+                                    || dir.getName().equals("Modules") || dir.getName().equals("Versions") || dir.getName()
+                                    .equals("Documentation"));
+                        }
+    
+                        @Override
+                        public void processFile(Resource resource, File file, File destDir) throws IOException {
+                            if (!isStaticLibrary(file)) {
+                                copyFile(resource, file, destDir);
+    
+                                if (isDynamicLibrary(file)) {                                                                        
+                                    // remove simulator archs for device builds
+                                    if (config.getOs() == OS.ios && config.getArch().isArm()) {
+                                        String archs = ToolchainUtil.lipoInfo(config, file);
+                                        File inFile = new File(destDir, file.getName());
+                                        File tmpFile = new File(destDir, file.getName() + ".tmp");
+                                        FileUtils.copyFile(inFile, tmpFile);
+                                        if(archs.contains(Arch.x86.getClangName())) { 
+                                            ToolchainUtil.lipoRemoveArchs(config, inFile, tmpFile, Arch.x86);
+                                        }
+                                        if(archs.contains(Arch.x86_64.getClangName())) { 
+                                            ToolchainUtil.lipoRemoveArchs(config, inFile, tmpFile, Arch.x86_64);
+                                        }
+                                        FileUtils.copyFile(tmpFile, inFile);
+                                        tmpFile.delete();
+                                    }
+    
+                                    // check if this dylib depends on Swift
+                                    // and register those libraries to be copied
+                                    // to bundle.app/Frameworks                                  
+                                    String dependencies = ToolchainUtil.otool(file);
+                                    Pattern swiftLibraryPattern = Pattern.compile("libswift.+\\.dylib");
+                                    Matcher matcher = swiftLibraryPattern.matcher(dependencies);
+                                    while (matcher.find()) {
+                                        String library = dependencies.substring(matcher.start(), matcher.end());
+                                        swiftLibraries.add(library);
+                                    }
+                                }
+                            }
+                        }
+    
+                    }, frameworksDir);
+                }
+            }
+        }
+
+        // copy Swift libraries if required
+        if (!swiftLibraries.isEmpty()) {
+            copySwiftLibs(swiftLibraries, frameworksDir);
+        }
+    }
+
+	protected void copySwiftLibs(Collection<String> swiftLibraries, File targetDir) throws IOException {
+		String system = null;
+		if (config.getOs() == OS.ios) {
+			if (config.getArch().isArm()) {
+				system = "iphoneos";
+			} else {
+				system = "iphonesimulator";
+			}
+		} else {
+			system = "mac";
+		}
+		File swiftDir = new File(ToolchainUtil.findXcodePath(),
+				"Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/" + system);
+		for (String library : swiftLibraries) {
+			config.getLogger().info("Copying swift lib %s from %s to %s", library, swiftDir, targetDir);
+			File swiftLibrary = new File(swiftDir, library);
+			FileUtils.copyFileToDirectory(swiftLibrary, targetDir);
+		}
+	}
+
+    protected boolean isDynamicLibrary(File file) throws IOException {
+        String result = ToolchainUtil.file(file);        
+        return result.contains("shared library");
+    }
+
+    protected boolean isStaticLibrary(File file) throws IOException {
+        String result = ToolchainUtil.file(file);        
+        return result.contains("ar archive");
+    }
 
     protected boolean processDir(Resource resource, File dir, File destDir) throws IOException {
         return true;
     }
 
     protected void copyFile(Resource resource, File file, File destDir) throws IOException {
-        config.getLogger().debug("Copying resource %s to %s", file, destDir);
+        config.getLogger().info("Copying resource %s to %s", file, destDir);
         FileUtils.copyFileToDirectory(file, destDir, true);
     }
     
     public void install() throws IOException {
-        config.getLogger().debug("Installing executable to %s", config.getInstallDir());
+        config.getLogger().info("Installing %s binary to %s", config.getTarget().getType(), config.getInstallDir());
         config.getInstallDir().mkdirs();
-        doInstall(config.getInstallDir(), config.getExecutableName());
+        doInstall(config.getInstallDir(), config.getExecutableName(), config.getInstallDir());
     }
-    
-    protected void doInstall(File installDir, String executable) throws IOException {
-        if (!config.getTmpDir().equals(installDir) || !executable.equals(config.getExecutableName())) {
-            File destFile = new File(installDir, executable);
+
+    @Override
+    public List<Arch> getDefaultArchs() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void archive() throws IOException {
+        throw new UnsupportedOperationException("Archiving is not supported for this target");
+    }
+
+    protected void doInstall(File installDir, String image, File resourcesDir) throws IOException {
+        if (!config.getTmpDir().equals(installDir) || !image.equals(config.getExecutableName())) {
+            File destFile = new File(installDir, image);
             FileUtils.copyFile(new File(config.getTmpDir(), config.getExecutableName()), destFile);
             destFile.setExecutable(true, false);
         }
@@ -256,7 +443,8 @@ public abstract class AbstractTarget implements Target {
             }
         }
         stripArchives(installDir);
-        copyResources(installDir);
+        copyResources(resourcesDir);
+        copyDynamicFrameworks(installDir);
     }
 
     public Process launch(LaunchParameters launchParameters) throws IOException {
@@ -290,7 +478,9 @@ public abstract class AbstractTarget implements Target {
         return createLauncher(launchParameters).execAsync();
     }
     
-    protected abstract Launcher createLauncher(LaunchParameters launchParameters) throws IOException;
+    protected Launcher createLauncher(LaunchParameters launchParameters) throws IOException {
+        throw new UnsupportedOperationException();
+    }
     
     protected Target build(Config config) {
         return this;
@@ -312,12 +502,12 @@ public abstract class AbstractTarget implements Target {
     protected void stripArchive(Path path, File output) throws IOException {
         
         if (!config.isClean() && output.exists() && !path.hasChangedSince(output.lastModified())) {
-            config.getLogger().debug("Not creating stripped archive file %s for unchanged path %s", 
+            config.getLogger().info("Not creating stripped archive file %s for unchanged path %s", 
                     output, path.getFile());
             return;
         }
         
-        config.getLogger().debug("Creating stripped archive file %s", output);
+        config.getLogger().info("Creating stripped archive file %s", output);
 
         ZipOutputStream out = null;
         try {

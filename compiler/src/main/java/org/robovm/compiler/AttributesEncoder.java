@@ -16,7 +16,6 @@
  */
 package org.robovm.compiler;
 
-import static org.robovm.compiler.Mangler.*;
 import static org.robovm.compiler.Types.*;
 import static org.robovm.compiler.llvm.Type.*;
 
@@ -33,6 +32,7 @@ import org.robovm.compiler.llvm.Constant;
 import org.robovm.compiler.llvm.FloatingPointConstant;
 import org.robovm.compiler.llvm.Global;
 import org.robovm.compiler.llvm.IntegerConstant;
+import org.robovm.compiler.llvm.Linkage;
 import org.robovm.compiler.llvm.PackedStructureConstant;
 import org.robovm.compiler.llvm.PackedStructureType;
 import org.robovm.compiler.llvm.StructureConstant;
@@ -100,7 +100,7 @@ public class AttributesEncoder {
         encodeAttributes(sootClass);
         Constant classAttributes = encodeAttributes(sootClass);
         if (classAttributes != null) {
-            Global g = new Global(Symbols.classAttributesSymbol(sootClass), classAttributes, true);
+            Global g = new Global(Symbols.classAttributesSymbol(sootClass), Linkage._private, classAttributes, true);
             mb.addGlobal(g);
             this.classAttributes = g;
         }
@@ -108,7 +108,7 @@ public class AttributesEncoder {
         for (SootField field : sootClass.getFields()) {
             Constant fieldAttributes = encodeAttributes(field);
             if (fieldAttributes != null) {
-                Global g = new Global(Symbols.fieldAttributesSymbol(field), fieldAttributes, true);
+                Global g = new Global(Symbols.fieldAttributesSymbol(field), Linkage._private, fieldAttributes, true);
                 mb.addGlobal(g);
                 this.fieldAttributes.put(field, g);
             }
@@ -117,7 +117,7 @@ public class AttributesEncoder {
         for (SootMethod method : sootClass.getMethods()) {
             Constant methodAttributes = encodeAttributes(method);
             if (methodAttributes != null) {
-                Global g = new Global(Symbols.methodAttributesSymbol(method), methodAttributes, true);
+                Global g = new Global(Symbols.methodAttributesSymbol(method), Linkage._private, methodAttributes, true);
                 mb.addGlobal(g);
                 this.methodAttributes.put(method, g);
             }
@@ -208,12 +208,12 @@ public class AttributesEncoder {
                     getStringOrNull(ase.getValue()));            
         } else if (ae instanceof AnnotationClassElem) {
             AnnotationClassElem ace = (AnnotationClassElem) ae;
-            addDependency(ace.getDesc());
+            addDependencyIfNeeded(ace.getDesc());
             return new PackedStructureConstant(type, kind,
                     getStringOrNull(ace.getDesc()));            
         } else if (ae instanceof AnnotationEnumElem) {
             AnnotationEnumElem aee = (AnnotationEnumElem) ae;
-            addDependency(aee.getTypeName());
+            addDependencyIfNeeded(aee.getTypeName());
             return new PackedStructureConstant(type, kind,
                     getStringOrNull(aee.getTypeName()),            
                     getStringOrNull(aee.getConstantName()));            
@@ -247,7 +247,7 @@ public class AttributesEncoder {
     private PackedStructureConstant encodeAnnotationTagValue(AnnotationTag tag) {
         Value[] values = new Value[tag.getNumElems() * 2 + 2];
         values[0] = getString(tag.getType());
-        addDependency(tag.getType());
+        addDependencyIfNeeded(tag.getType());
         values[1] = new IntegerConstant(tag.getNumElems());
         for (int i = 0; i < tag.getNumElems(); i++) {
             values[i * 2 + 2] = getString(tag.getElemAt(i).getName());
@@ -267,7 +267,6 @@ public class AttributesEncoder {
             } else if (tag instanceof EnclosingMethodTag) {
                 EnclosingMethodTag emt = (EnclosingMethodTag) tag;
                 Value eClass = getString(emt.getEnclosingClass());
-                addDependency(emt.getEnclosingClass());
                 Value eMethod = getStringOrNull(emt.getEnclosingMethod());
                 Value eDesc = getStringOrNull(emt.getEnclosingMethodSig());
                 attributes.add(new PackedStructureConstant(new PackedStructureType(I8, I8_PTR, I8_PTR, I8_PTR), 
@@ -279,9 +278,7 @@ public class AttributesEncoder {
             } else if (tag instanceof InnerClassTag) {
                 InnerClassTag ict = (InnerClassTag) tag;
                 Value innerClass = getStringOrNull(ict.getInnerClass());
-                addDependency(ict.getInnerClass());
                 Value outerClass = getStringOrNull(ict.getOuterClass());
-                addDependency(ict.getOuterClass());
                 Value innerName = getStringOrNull(ict.getShortName());
                 Value innerClassAccess = new IntegerConstant(ict.getAccessFlags());
                 attributes.add(new PackedStructureConstant(new PackedStructureType(I8, I8_PTR, I8_PTR, I8_PTR, I32), 
@@ -370,19 +367,18 @@ public class AttributesEncoder {
         return mb.getStringOrNull(string);
     }
     
-    private void addDependency(String s) {
-        if (s == null || isArray(s) && isPrimitiveBaseType(s)) {
+    private void addDependency(String internalName) {
+        dependencies.add(internalName);
+    }
+
+    private void addDependencyIfNeeded(String desc) {
+        if (desc == null || isPrimitive(desc) || isArray(desc) && isPrimitiveBaseType(desc)) {
             return;
         }
-        int start = 0;
-        int end = s.length();
-        if (isArray(s)) {
-            start = s.indexOf('L') + 1;
-            end--;
-        } else if (s.charAt(0) == 'L' && s.charAt(end - 1) == ';') {
-            start = 1;
-            end--;
+        if (isArray(desc)) {
+            dependencies.add(getBaseType(desc));
+        } else {
+            dependencies.add(getInternalNameFromDescriptor(desc));
         }
-        dependencies.add(s.substring(start, end));
     }
 }

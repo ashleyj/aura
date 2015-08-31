@@ -35,9 +35,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.ServiceLoader;
 import java.util.TreeMap;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
@@ -46,7 +48,7 @@ import java.util.zip.ZipFile;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.robovm.compiler.CompilerException;
+import org.robovm.compiler.DependencyGraph;
 import org.robovm.compiler.ITable;
 import org.robovm.compiler.MarshalerLookup;
 import org.robovm.compiler.VTable;
@@ -54,6 +56,7 @@ import org.robovm.compiler.Version;
 import org.robovm.compiler.clazz.Clazz;
 import org.robovm.compiler.clazz.Clazzes;
 import org.robovm.compiler.clazz.Path;
+import org.robovm.compiler.config.OS.Family;
 import org.robovm.compiler.config.tools.Tools;
 import org.robovm.compiler.llvm.DataLayout;
 import org.robovm.compiler.log.Logger;
@@ -61,6 +64,7 @@ import org.robovm.compiler.plugin.CompilerPlugin;
 import org.robovm.compiler.plugin.LaunchPlugin;
 import org.robovm.compiler.plugin.Plugin;
 import org.robovm.compiler.plugin.PluginArgument;
+import org.robovm.compiler.plugin.TargetPlugin;
 import org.robovm.compiler.plugin.annotation.AnnotationImplPlugin;
 import org.robovm.compiler.plugin.lambda.LambdaPlugin;
 import org.robovm.compiler.plugin.objc.InterfaceBuilderClassesPlugin;
@@ -70,9 +74,10 @@ import org.robovm.compiler.plugin.objc.ObjCProtocolProxyPlugin;
 import org.robovm.compiler.target.ConsoleTarget;
 import org.robovm.compiler.target.Target;
 import org.robovm.compiler.target.ios.IOSTarget;
-import org.robovm.compiler.target.ios.InfoPList;
 import org.robovm.compiler.target.ios.ProvisioningProfile;
 import org.robovm.compiler.target.ios.SigningIdentity;
+import org.robovm.compiler.util.DigestUtil;
+import org.robovm.compiler.util.InfoPList;
 import org.robovm.compiler.util.io.RamDiskTools;
 import org.simpleframework.xml.Element;
 import org.simpleframework.xml.ElementList;
@@ -93,18 +98,28 @@ import org.simpleframework.xml.stream.OutputNode;
 @Root
 public class Config {
 
+    /**
+     * The max file name length of files stored in the cache. OS X has a limit
+     * of 255 characters. Class names are very unlikely to be this long but some
+     * JVM language compilers (e.g. the Scala compiler) are known to generate
+     * very long class names for auto-generated classes. See #955.
+     */
+    private static final int MAX_FILE_NAME_LENGTH = 255;
+
     public enum Cacerts {
         full
     };
 
-    public enum TargetType {
-        console, ios
+    public enum TreeShakerMode {
+        none, conservative, aggressive
     };
 
     @Element(required = false)
     private File installDir = null;
     @Element(required = false)
     private String executableName = null;
+    @Element(required = false)
+    private String imageName = null;
     @Element(required = false)
     private Boolean useDynamicJni = null;
     @Element(required = false)
@@ -117,8 +132,8 @@ public class Config {
     private Cacerts cacerts = null;
     @Element(required = false)
     private OS os = null;
-    @Element(required = false)
-    private Arch arch = null;
+    @ElementList(required = false, inline = true)
+    private ArrayList<Arch> archs = null;
     @ElementList(required = false, entry = "root")
     private ArrayList<String> roots;
     @ElementList(required = false, entry = "pattern")
@@ -127,6 +142,8 @@ public class Config {
     private ArrayList<Lib> libs;
     @ElementList(required = false, entry = "symbol")
     private ArrayList<String> exportedSymbols;
+    @ElementList(required = false, entry = "symbol")
+    private ArrayList<String> unhideSymbols;
     @ElementList(required = false, entry = "framework")
     private ArrayList<String> frameworks;
     @ElementList(required = false, entry = "framework")
@@ -142,12 +159,16 @@ public class Config {
     @ElementList(required = false, entry = "argument")
     private ArrayList<String> pluginArguments;
     @Element(required = false, name = "target")
-    private TargetType targetType;
+    private String targetType;
+    @Element(required = false, name = "treeShaker")
+    private TreeShakerMode treeShakerMode;
 
     @Element(required = false)
     private String iosSdkVersion;
     @Element(required = false, name = "iosInfoPList")
     private File iosInfoPListFile = null;
+    @Element(required = false, name = "infoPList")
+    private File infoPListFile = null;
     @Element(required = false)
     private File iosResourceRulesPList;
     @Element(required = false)
@@ -159,7 +180,7 @@ public class Config {
     private SigningIdentity iosSignIdentity;
     private ProvisioningProfile iosProvisioningProfile;
     private String iosDeviceType;
-    private InfoPList iosInfoPList;
+    private InfoPList infoPList;
 
     private boolean iosSkipSigning = false;
 
@@ -196,14 +217,16 @@ public class Config {
     private transient DataLayout dataLayout;
     private transient MarshalerLookup marshalerLookup;
     private transient Config configBeforeBuild;
+    private transient DependencyGraph dependencyGraph;
+    private transient Arch sliceArch;
 
     protected Config() throws IOException {
         // Add standard plugins
         this.plugins.addAll(0, Arrays.asList(
                 new InterfaceBuilderClassesPlugin(),
                 new ObjCProtocolProxyPlugin(),
-                new ObjCBlockPlugin(),
                 new ObjCMemberPlugin(),
+                new ObjCBlockPlugin(),
                 new AnnotationImplPlugin(),
                 new LambdaPlugin()
                 ));
@@ -230,8 +253,16 @@ public class Config {
         return executableName;
     }
 
+    public String getImageName() {
+        return imageName;
+    }
+
     public File getExecutablePath() {
         return new File(installDir, getExecutableName());
+    }
+
+    public File getImagePath() {
+        return getExecutablePath();
     }
 
     public File getCacheDir() {
@@ -247,15 +278,20 @@ public class Config {
     }
 
     public Arch getArch() {
-        return arch;
+        return sliceArch;
     }
 
+    public List<Arch> getArchs() {
+        return archs == null ? Collections.<Arch> emptyList()
+                : Collections.unmodifiableList(archs);
+    }
+    
     public String getTriple() {
-        return arch.getLlvmName() + "-unknown-" + os.getLlvmName();
+        return sliceArch.getLlvmName() + "-unknown-" + os.getLlvmName();
     }
 
     public String getClangTriple() {
-        return arch.getClangName() + "-unknown-" + os.getLlvmName();
+        return sliceArch.getClangName() + "-unknown-" + os.getLlvmName();
     }
 
     public DataLayout getDataLayout() {
@@ -318,6 +354,10 @@ public class Config {
         resourcesPaths.add(path);
     }
 
+    public DependencyGraph getDependencyGraph() {
+        return dependencyGraph;
+    }
+    
     public File getTmpDir() {
         if (tmpDir == null) {
             try {
@@ -341,6 +381,11 @@ public class Config {
                 : Collections.unmodifiableList(exportedSymbols);
     }
 
+    public List<String> getUnhideSymbols() {
+        return unhideSymbols == null ? Collections.<String> emptyList()
+                : Collections.unmodifiableList(unhideSymbols);
+    }
+    
     public List<Lib> getLibs() {
         return libs == null ? Collections.<Lib> emptyList()
                 : Collections.unmodifiableList(libs);
@@ -406,6 +451,16 @@ public class Config {
         return launchPlugins;
     }
 
+    public List<TargetPlugin> getTargetPlugins() {
+        List<TargetPlugin> targetPlugins = new ArrayList<>();
+        for (Plugin plugin : plugins) {
+            if (plugin instanceof TargetPlugin) {
+                targetPlugins.add((TargetPlugin) plugin);
+            }
+        }
+        return targetPlugins;
+    }
+
     public List<Plugin> getPlugins() {
         return plugins;
     }
@@ -437,8 +492,12 @@ public class Config {
         return target;
     }
 
-    public TargetType getTargetType() {
+    public String getTargetType() {
         return targetType;
+    }
+
+    public TreeShakerMode getTreeShakerMode() {
+        return treeShakerMode == null ? TreeShakerMode.none : treeShakerMode;
     }
 
     public String getIosSdkVersion() {
@@ -450,10 +509,16 @@ public class Config {
     }
 
     public InfoPList getIosInfoPList() {
-        if (iosInfoPList == null && iosInfoPListFile != null) {
-            iosInfoPList = new InfoPList(iosInfoPListFile);
+        return getInfoPList();
+    }
+
+    public InfoPList getInfoPList() {
+        if (infoPList == null && iosInfoPListFile != null) {
+            infoPList = new InfoPList(iosInfoPListFile);
+        } else if (infoPList == null && infoPListFile != null) {
+            infoPList = new InfoPList(infoPListFile);
         }
-        return iosInfoPList;
+        return infoPList;
     }
 
     public File getIosResourceRulesPList() {
@@ -495,49 +560,53 @@ public class Config {
         }
     }
 
+    static String getFileName(Clazz clazz, String ext) {
+        return getFileName(clazz.getInternalName(), ext, MAX_FILE_NAME_LENGTH);
+    }
+
+    static String getFileName(String internalName, String ext, int maxFileNameLength) {
+        String packagePath = internalName.substring(0, internalName.lastIndexOf('/') + 1);
+        String className = internalName.substring(internalName.lastIndexOf('/') + 1);
+        String suffix = ext.startsWith(".") ? ext : "." + ext;
+
+        int length = className.length() + suffix.length();
+        if (length > maxFileNameLength) {
+            String sha1 = DigestUtil.sha1(className);
+            className = className.substring(0, Math.max(0, maxFileNameLength - suffix.length() - sha1.length())) + sha1;
+        }
+        return packagePath.replace('/', File.separatorChar) + className + suffix;
+    }
+
     public File getLlFile(Clazz clazz) {
-        String baseName = clazz.getInternalName().replace('/', File.separatorChar);
-        return new File(getCacheDir(clazz.getPath()), baseName + ".class.ll");
+        return new File(getCacheDir(clazz.getPath()), getFileName(clazz, "class.ll"));
     }
 
     public File getCFile(Clazz clazz) {
-        String baseName = clazz.getInternalName().replace('/', File.separatorChar);
-        return new File(getCacheDir(clazz.getPath()), baseName + ".class.c");
+        return new File(getCacheDir(clazz.getPath()), getFileName(clazz, "class.c"));
     }
 
     public File getBcFile(Clazz clazz) {
-        String baseName = clazz.getInternalName().replace('/', File.separatorChar);
-        return new File(getCacheDir(clazz.getPath()), baseName + ".class.bc");
+        return new File(getCacheDir(clazz.getPath()), getFileName(clazz, "class.bc"));
     }
 
     public File getSFile(Clazz clazz) {
-        String baseName = clazz.getInternalName().replace('/', File.separatorChar);
-        return new File(getCacheDir(clazz.getPath()), baseName + ".class.s");
+        return new File(getCacheDir(clazz.getPath()), getFileName(clazz, "class.s"));
     }
 
     public File getOFile(Clazz clazz) {
-        String baseName = clazz.getInternalName().replace('/', File.separatorChar);
-        return new File(getCacheDir(clazz.getPath()), baseName + ".class.o");
+        return new File(getCacheDir(clazz.getPath()), getFileName(clazz, "class.o"));
     }
 
     public File getLinesOFile(Clazz clazz) {
-        String baseName = clazz.getInternalName().replace('/', File.separatorChar);
-        return new File(getCacheDir(clazz.getPath()), baseName + ".class.lines.o");
+        return new File(getCacheDir(clazz.getPath()), getFileName(clazz, "class.lines.o"));
     }
 
     public File getLinesLlFile(Clazz clazz) {
-        String baseName = clazz.getInternalName().replace('/', File.separatorChar);
-        return new File(getCacheDir(clazz.getPath()), baseName + ".class.lines.ll");
-    }
-
-    public File getDepsFile(Clazz clazz) {
-        String baseName = clazz.getInternalName().replace('/', File.separatorChar);
-        return new File(getCacheDir(clazz.getPath()), baseName + ".class.deps");
+        return new File(getCacheDir(clazz.getPath()), getFileName(clazz, "class.lines.ll"));
     }
 
     public File getInfoFile(Clazz clazz) {
-        String baseName = clazz.getInternalName().replace('/', File.separatorChar);
-        return new File(getCacheDir(clazz.getPath()), baseName + ".class.info");
+        return new File(getCacheDir(clazz.getPath()), getFileName(clazz, "class.info"));
     }
 
     public File getCacheDir(Path path) {
@@ -629,6 +698,7 @@ public class Config {
 
     private void mergeConfig(Config from, Config to) {
         to.exportedSymbols = mergeLists(from.exportedSymbols, to.exportedSymbols);
+        to.unhideSymbols = mergeLists(from.unhideSymbols, to.unhideSymbols);
         to.forceLinkClasses = mergeLists(from.forceLinkClasses, to.forceLinkClasses);
         to.frameworkPaths = mergeLists(from.frameworkPaths, to.frameworkPaths);
         to.frameworks = mergeLists(from.frameworks, to.frameworks);
@@ -639,7 +709,7 @@ public class Config {
 
     private void mergeConfigsFromClasspath() throws IOException {
         List<String> dirs = Arrays.asList(
-                "META-INF/robovm/" + os + "/" + arch,
+                "META-INF/robovm/" + os + "/" + sliceArch,
                 "META-INF/robovm/" + os);
 
         // The algorithm below preserves the order of config data from the
@@ -664,6 +734,7 @@ public class Config {
 
         // Copy back to this Config
         this.exportedSymbols = config.exportedSymbols;
+        this.unhideSymbols = config.unhideSymbols;
         this.forceLinkClasses = config.forceLinkClasses;
         this.frameworkPaths = config.frameworkPaths;
         this.frameworks = config.frameworks;
@@ -672,34 +743,29 @@ public class Config {
         this.weakFrameworks = config.weakFrameworks;
     }
 
-    private void loadPluginsFromClassPath() throws IOException {
-        try (InputStream in = getClass().getResourceAsStream("/META-INF/robovm/plugins.properties")) {
-            if (in != null) {
-                Properties p = new Properties();
-                p.load(in);
-                String value;
-                for (int i = 1; (value = p.getProperty("compiler.plugin." + i)) != null; i++) {
-                    Class<CompilerPlugin> c = (Class<CompilerPlugin>) getClass().getClassLoader().loadClass(value);
-                    plugins.add(c.newInstance());
-                }
-                for (int i = 1; (value = p.getProperty("launch.plugin." + i)) != null; i++) {
-                    Class<LaunchPlugin> c = (Class<LaunchPlugin>) getClass().getClassLoader().loadClass(value);
-                    plugins.add(c.newInstance());
-                }
-            }
-        } catch (ClassNotFoundException e) {
-            throw new CompilerException(e);
-        } catch (InstantiationException e) {
-            throw new CompilerException(e);
-        } catch (IllegalAccessException e) {
-            throw new CompilerException(e);
+    private static <T> List<T> toList(Iterator<T> it) {
+        List<T> l = new ArrayList<T>();
+        while (it.hasNext()) {
+            l.add(it.next());
         }
+        return l;
+    }
+
+    private void loadPluginsFromClassPath() throws IOException {
+        ClassLoader classLoader = getClass().getClassLoader();
+        ServiceLoader<CompilerPlugin> compilerPluginLoader = ServiceLoader.load(CompilerPlugin.class, classLoader);
+        ServiceLoader<LaunchPlugin> launchPluginLoader = ServiceLoader.load(LaunchPlugin.class, classLoader);
+        ServiceLoader<TargetPlugin> targetPluginLoader = ServiceLoader.load(TargetPlugin.class, classLoader);
+
+        plugins.addAll(toList(compilerPluginLoader.iterator()));
+        plugins.addAll(toList(launchPluginLoader.iterator()));
+        plugins.addAll(toList(targetPluginLoader.iterator()));
     }
 
     private static Config clone(Config config) throws IOException {
         Config clone = new Config();
         for (Field f : Config.class.getDeclaredFields()) {
-            if (!Modifier.isTransient(f.getModifiers())) {
+            if (!Modifier.isStatic(f.getModifiers()) && !Modifier.isTransient(f.getModifiers())) {
                 f.setAccessible(true);
                 try {
                     Object o = f.get(config);
@@ -739,6 +805,10 @@ public class Config {
             classpath.add(mainJar);
         }
 
+        if (executableName == null && imageName != null) {
+            executableName = imageName;
+        }
+
         if (!skipLinking && executableName == null && mainClass == null) {
             throw new IllegalArgumentException("No target and no main class specified");
         }
@@ -753,6 +823,10 @@ public class Config {
 
         if (executableName == null) {
             executableName = mainClass;
+        }
+
+        if (imageName == null || !imageName.equals(executableName)) {
+            imageName = executableName;
         }
 
         List<File> realBootclasspath = bootclasspath == null ? new ArrayList<File>() : bootclasspath;
@@ -772,10 +846,22 @@ public class Config {
             installDir.mkdirs();
         }
 
-        if (targetType == TargetType.console) {
-            target = new ConsoleTarget();
-        } else if (targetType == TargetType.ios) {
-            target = new IOSTarget();
+        if (targetType != null) {
+            if (ConsoleTarget.TYPE.equals(targetType)) {
+                target = new ConsoleTarget();
+            } else if (IOSTarget.TYPE.equals(targetType)) {
+                target = new IOSTarget();
+            } else {
+                for (TargetPlugin plugin : getTargetPlugins()) {
+                    if (plugin.getTarget().getType().equals(targetType)) {
+                        target = plugin.getTarget();
+                        break;
+                    }
+                }
+                if (target == null) {
+                    throw new IllegalArgumentException("Unsupported target '" + targetType + "'");
+                }
+            }
         } else {
             // Auto
             if (os == OS.ios) {
@@ -784,17 +870,38 @@ public class Config {
                 target = new ConsoleTarget();
             }
         }
+
+        if (!getArchs().isEmpty()) {
+            sliceArch = getArchs().get(0);
+        }
+
         target.init(this);
 
         os = target.getOs();
-        arch = target.getArch();
+        sliceArch = target.getArch();
         dataLayout = new DataLayout(getTriple());
 
         osArchDepLibDir = new File(new File(home.libVmDir, os.toString()),
-                arch.toString());
+                sliceArch.toString());
+
+        if (treeShakerMode != null && treeShakerMode != TreeShakerMode.none 
+                && os.getFamily() == Family.darwin && sliceArch == Arch.x86) {
+
+            logger.warn("Tree shaking is not supported when building "
+                    + "for OS X/iOS x86 32-bit due to a bug in Xcode's linker. No tree "
+                    + "shaking will be performed. Run in 64-bit mode instead to "
+                    + "use tree shaking.");
+            treeShakerMode = TreeShakerMode.none;
+        }
+        dependencyGraph = new DependencyGraph(getTreeShakerMode());
+
+        RamDiskTools ramDiskTools = new RamDiskTools();
+        ramDiskTools.setupRamDisk(this, this.cacheDir, this.tmpDir);
+        this.cacheDir = ramDiskTools.getCacheDir();
+        this.tmpDir = ramDiskTools.getTmpDir();
 
         File osDir = new File(cacheDir, os.toString());
-        File archDir = new File(osDir, arch.toString());
+        File archDir = new File(osDir, sliceArch.toString());
         osArchCacheDir = new File(archDir, debug ? "debug" : "release");
         osArchCacheDir.mkdirs();
 
@@ -862,6 +969,10 @@ public class Config {
             // pointing at the root of a complete RoboVM source tree.
             if (System.getenv("ROBOVM_DEV_ROOT") != null) {
                 File dir = new File(System.getenv("ROBOVM_DEV_ROOT"));
+                return validateDevRootDir(dir);
+            }
+            if (System.getProperty("ROBOVM_DEV_ROOT") != null) {
+                File dir = new File(System.getProperty("ROBOVM_DEV_ROOT"));
                 return validateDevRootDir(dir);
             }
 
@@ -987,7 +1098,19 @@ public class Config {
         }
 
         public Builder arch(Arch arch) {
-            config.arch = arch;
+            return archs(arch);
+        }
+
+        public Builder archs(Arch ... archs) {
+            return archs(Arrays.asList(archs));
+        }
+
+        public Builder archs(List<Arch> archs) {
+            if (config.archs == null) {
+                config.archs = new ArrayList<>();
+            }
+            config.archs.clear();
+            config.archs.addAll(archs);
             return this;
         }
 
@@ -1033,6 +1156,11 @@ public class Config {
 
         public Builder executableName(String executableName) {
             config.executableName = executableName;
+            return this;
+        }
+
+        public Builder imageName(String imageName) {
+            config.imageName = imageName;
             return this;
         }
 
@@ -1111,6 +1239,11 @@ public class Config {
             return this;
         }
 
+        public Builder treeShakerMode(TreeShakerMode treeShakerMode) {
+            config.treeShakerMode = treeShakerMode;
+            return this;
+        }
+
         public Builder clearForceLinkClasses() {
             if (config.forceLinkClasses != null) {
                 config.forceLinkClasses.clear();
@@ -1138,6 +1271,21 @@ public class Config {
                 config.exportedSymbols = new ArrayList<String>();
             }
             config.exportedSymbols.add(symbol);
+            return this;
+        }
+
+        public Builder clearUnhideSymbols() {
+            if (config.unhideSymbols != null) {
+                config.unhideSymbols.clear();
+            }
+            return this;
+        }
+
+        public Builder addUnhideSymbol(String symbol) {
+            if (config.unhideSymbols == null) {
+                config.unhideSymbols = new ArrayList<String>();
+            }
+            config.unhideSymbols.add(symbol);
             return this;
         }
 
@@ -1216,7 +1364,7 @@ public class Config {
             return this;
         }
 
-        public Builder targetType(TargetType targetType) {
+        public Builder targetType(String targetType) {
             config.targetType = targetType;
             return this;
         }
@@ -1274,6 +1422,11 @@ public class Config {
             return this;
         }
 
+        public Builder infoPList(File infoPList) {
+            config.infoPListFile = infoPList;
+            return this;
+        }
+
         public Builder iosEntitlementsPList(File entitlementsPList) {
             config.iosEntitlementsPList = entitlementsPList;
             return this;
@@ -1309,6 +1462,11 @@ public class Config {
             return this;
         }
 
+        public Builder addTargetPlugin(TargetPlugin plugin) {
+            config.plugins.add(plugin);
+            return this;
+        }
+
         public void addPluginArgument(String argName) {
             if (config.pluginArguments == null) {
                 config.pluginArguments = new ArrayList<>();
@@ -1321,7 +1479,6 @@ public class Config {
                 plugin.beforeConfig(this, config);
             }
 
-            new RamDiskTools().setupRamDisk(this, config);
             return config.build();
         }
 
@@ -1347,20 +1504,20 @@ public class Config {
             File localPropsFile = new File(basedir, "robovm.local.properties");
             File propsFile = new File(basedir, "robovm.properties");
             if (isTest && testPropsFile.exists()) {
-                config.logger.debug("Loading test RoboVM config properties file: "
+                config.logger.info("Loading test RoboVM config properties file: "
                         + testPropsFile.getAbsolutePath());
                 addProperties(testPropsFile);
             } else {
                 Properties props = new Properties();
                 if (propsFile.exists()) {
-                    config.logger.debug("Loading default RoboVM config properties file: "
+                    config.logger.info("Loading default RoboVM config properties file: "
                             + propsFile.getAbsolutePath());
                     try (Reader reader = new InputStreamReader(new FileInputStream(propsFile), "utf-8")) {
                         props.load(reader);
                     }
                 }
                 if (localPropsFile.exists()) {
-                    config.logger.debug("Loading local RoboVM config properties file: "
+                    config.logger.info("Loading local RoboVM config properties file: "
                             + localPropsFile.getAbsolutePath());
                     try (Reader reader = new InputStreamReader(new FileInputStream(localPropsFile), "utf-8")) {
                         props.load(reader);
@@ -1379,7 +1536,7 @@ public class Config {
             String propValue = props.getProperty(propName);
             if (propValue != null && !propValue.endsWith("Test")) {
                 String newPropValue = propValue + "Test";
-                config.logger.debug("Changing %s property from '%s' to '%s'", propName, propValue, newPropValue);
+                config.logger.info("Changing %s property from '%s' to '%s'", propName, propValue, newPropValue);
                 props.setProperty(propName, newPropValue);
             }
         }
@@ -1399,11 +1556,11 @@ public class Config {
             File testConfigFile = new File(basedir, "robovm.test.xml");
             File configFile = new File(basedir, "robovm.xml");
             if (isTest && testConfigFile.exists()) {
-                config.logger.debug("Loading test RoboVM config file: "
+                config.logger.info("Loading test RoboVM config file: "
                         + testConfigFile.getAbsolutePath());
                 read(testConfigFile);
             } else if (configFile.exists()) {
-                config.logger.debug("Loading default RoboVM config file: "
+                config.logger.info("Loading default RoboVM config file: "
                         + configFile.getAbsolutePath());
                 read(configFile);
             }

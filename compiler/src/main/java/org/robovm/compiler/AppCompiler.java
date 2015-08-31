@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -44,22 +45,23 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.robovm.compiler.clazz.Clazz;
 import org.robovm.compiler.clazz.Clazzes;
-import org.robovm.compiler.clazz.Dependency;
 import org.robovm.compiler.clazz.Path;
 import org.robovm.compiler.config.Arch;
 import org.robovm.compiler.config.Config;
-import org.robovm.compiler.config.Config.Home;
-import org.robovm.compiler.config.Config.TargetType;
+import org.robovm.compiler.config.Config.TreeShakerMode;
 import org.robovm.compiler.config.OS;
 import org.robovm.compiler.config.Resource;
 import org.robovm.compiler.log.ConsoleLogger;
 import org.robovm.compiler.plugin.LaunchPlugin;
 import org.robovm.compiler.plugin.Plugin;
 import org.robovm.compiler.plugin.PluginArgument;
+import org.robovm.compiler.plugin.TargetPlugin;
+import org.robovm.compiler.target.ConsoleTarget;
 import org.robovm.compiler.target.LaunchParameters;
 import org.robovm.compiler.target.ios.DeviceType;
 import org.robovm.compiler.target.ios.IOSSimulatorLaunchParameters;
@@ -75,23 +77,87 @@ import org.robovm.compiler.util.AntPathMatcher;
 public class AppCompiler {
 
     /**
-     * Patterns for root classes. Classes matching these patterns will always be
-     * linked in.
-     */
-    private static final String[] ROOT_CLASS_PATTERNS = {
-        "java.lang.**.*",
-        "org.robovm.rt.**.*"
-    };
-    /**
-     * Names of root classes. These classes will always be linked in. Most of
-     * these are here because they are required by Android's libcore native
-     * code.
+     * Names of root classes. These classes will always be linked in. These are
+     * here because they are either required by the RoboVM specific native VM
+     * libraries or by the Android's libcore native code.
      */
     private static final String[] ROOT_CLASSES = {
         "java/io/FileDescriptor",
         "java/io/PrintWriter",
         "java/io/Serializable",
         "java/io/StringWriter",
+        "java/lang/AbstractMethodError",
+        "java/lang/annotation/Annotation",
+        "java/lang/annotation/AnnotationFormatError",
+        "java/lang/ArithmeticException",
+        "java/lang/ArrayIndexOutOfBoundsException",
+        "java/lang/ArrayStoreException",
+        "java/lang/Boolean",
+        "java/lang/Byte",
+        "java/lang/Character",
+        "java/lang/Class",
+        "java/lang/ClassCastException",
+        "java/lang/ClassLoader",
+        "java/lang/ClassLoader$SystemClassLoader",
+        "java/lang/ClassNotFoundException",
+        "java/lang/Cloneable",
+        "java/lang/Daemons",
+        "java/lang/Double",
+        "java/lang/Enum",
+        "java/lang/Error",
+        "java/lang/ExceptionInInitializerError",
+        "java/lang/Float",
+        "java/lang/IllegalAccessError",
+        "java/lang/IllegalArgumentException",
+        "java/lang/IllegalMonitorStateException",
+        "java/lang/IllegalStateException",
+        "java/lang/IncompatibleClassChangeError",
+        "java/lang/IndexOutOfBoundsException",
+        "java/lang/InstantiationError",
+        "java/lang/InstantiationException",
+        "java/lang/Integer",
+        "java/lang/InternalError",
+        "java/lang/InterruptedException",
+        "java/lang/LinkageError",
+        "java/lang/Long",
+        "java/lang/NegativeArraySizeException",
+        "java/lang/NoClassDefFoundError",
+        "java/lang/NoSuchFieldError",
+        "java/lang/NoSuchMethodError",
+        "java/lang/NullPointerException",
+        "java/lang/Object",
+        "java/lang/OutOfMemoryError",
+        "java/lang/RealToString",
+        "java/lang/ref/FinalizerReference",
+        "java/lang/ref/PhantomReference",
+        "java/lang/ref/Reference",
+        "java/lang/ref/ReferenceQueue",
+        "java/lang/ref/SoftReference",
+        "java/lang/ref/WeakReference",
+        "java/lang/reflect/AccessibleObject",
+        "java/lang/reflect/Constructor",
+        "java/lang/reflect/Field",
+        "java/lang/reflect/InvocationHandler",
+        "java/lang/reflect/InvocationTargetException",
+        "java/lang/reflect/Method",
+        "java/lang/reflect/Proxy",
+        "java/lang/reflect/UndeclaredThrowableException",
+        "java/lang/Runtime",
+        "java/lang/RuntimeException",
+        "java/lang/Short",
+        "java/lang/StackOverflowError",
+        "java/lang/StackTraceElement",
+        "java/lang/String",
+        "java/lang/System",
+        "java/lang/Thread",
+        "java/lang/Thread$UncaughtExceptionHandler",
+        "java/lang/ThreadGroup",
+        "java/lang/Throwable",
+        "java/lang/TypeNotPresentException",
+        "java/lang/UnsatisfiedLinkError",
+        "java/lang/UnsupportedOperationException",
+        "java/lang/VerifyError",
+        "java/lang/VMClassLoader",
         "java/math/BigDecimal",
         "java/net/Inet6Address",
         "java/net/InetAddress",
@@ -100,8 +166,10 @@ public class AppCompiler {
         "java/net/Socket",
         "java/net/SocketImpl",
         "java/nio/charset/CharsetICU",
+        "java/nio/DirectByteBuffer",
         "java/text/Bidi$Run",
         "java/text/ParsePosition",
+        "java/util/Calendar",
         "java/util/regex/PatternSyntaxException",
         "java/util/zip/Deflater",
         "java/util/zip/Inflater",
@@ -118,9 +186,11 @@ public class AppCompiler {
         "libcore/io/StructStat",
         "libcore/io/StructStatVfs",
         "libcore/io/StructTimeval",
+        "libcore/io/StructUcred",
         "libcore/io/StructUtsname",
         "libcore/util/MutableInt",
-        "libcore/util/MutableLong"
+        "libcore/util/MutableLong",
+        "org/robovm/rt/bro/Struct"
     };
 
     private static final String TRUSTED_CERTIFICATE_STORE_CLASS =
@@ -185,9 +255,6 @@ public class AppCompiler {
      */
     private TreeSet<Clazz> getRootClasses() {
         TreeSet<Clazz> classes = new TreeSet<Clazz>();
-        for (String rootClassPattern : ROOT_CLASS_PATTERNS) {
-            classes.addAll(getMatchingClasses(rootClassPattern));
-        }
         for (String rootClassName : ROOT_CLASSES) {
             Clazz clazz = config.getClazzes().load(rootClassName);
             if (clazz == null) {
@@ -234,22 +301,12 @@ public class AppCompiler {
     }
 
     private boolean compile(Executor executor, ClassCompilerListener listener,
-            Clazz clazz, Set<Clazz> compileQueue, Set<Clazz> compiled,
-            boolean compileDependencies) throws IOException {
+            Clazz clazz, Set<Clazz> compileQueue, Set<Clazz> compiled) throws IOException {
 
         boolean result = false;
         if (config.isClean() || classCompiler.mustCompile(clazz)) {
             classCompiler.compile(clazz, executor, listener);
             result = true;
-        }
-        if (compileDependencies) {
-            for (Dependency dep : clazz.getClazzInfo().getDependencies()) {
-                Clazz depClazz = config.getClazzes().load(dep.getClassName());
-                if (depClazz != null && !compiled.contains(depClazz)) {
-                    compileQueue.add(depClazz);
-                }
-            }
-            addMetaInfImplementations(config.getClazzes(), clazz, compiled, compileQueue);
         }
         return result;
     }
@@ -283,10 +340,10 @@ public class AppCompiler {
         }
     }
 
-    public Set<Clazz> compile(Collection<Clazz> rootClasses, boolean compileDependencies,
+    public Set<Clazz> compile(Set<Clazz> rootClasses, boolean compileDependencies,
             final ClassCompilerListener listener) throws IOException {
 
-        config.getLogger().debug("Compiling classes using %d threads", config.getThreads());
+        config.getLogger().info("Compiling classes using %d threads", config.getThreads());
 
         final Executor executor = (config.getThreads() <= 1)
                 ? SAME_THREAD_EXECUTOR
@@ -321,21 +378,40 @@ public class AppCompiler {
         };
         HandleFailureListener listenerWrapper = new HandleFailureListener();
 
+        DependencyGraph dependencyGraph = config.getDependencyGraph();
+
         TreeSet<Clazz> compileQueue = new TreeSet<>(rootClasses);
         long start = System.currentTimeMillis();
         Set<Clazz> linkClasses = new HashSet<Clazz>();
         int compiledCount = 0;
-        while (!compileQueue.isEmpty() && !Thread.currentThread().isInterrupted()) {
-            Clazz clazz = compileQueue.pollFirst();
-            if (!linkClasses.contains(clazz)) {
-                if (compile(executor, listenerWrapper, clazz, compileQueue, linkClasses, compileDependencies)) {
-                    compiledCount++;
-                    if (listenerWrapper.t != null) {
-                        // We have a failed compilation. Stop compiling.
-                        break;
+        outer: while (!compileQueue.isEmpty() && !Thread.currentThread().isInterrupted()) {
+            while (!compileQueue.isEmpty() && !Thread.currentThread().isInterrupted()) {
+                Clazz clazz = compileQueue.pollFirst();
+                if (!linkClasses.contains(clazz)) {
+                    if (compile(executor, listenerWrapper, clazz, compileQueue, linkClasses)) {
+                        compiledCount++;
+                        if (listenerWrapper.t != null) {
+                            // We have a failed compilation. Stop compiling.
+                            break outer;
+                        }
+                    }
+
+                    dependencyGraph.add(clazz, rootClasses.contains(clazz));
+                    linkClasses.add(clazz);
+
+                    if (compileDependencies) {
+                        addMetaInfImplementations(config.getClazzes(), clazz, linkClasses, compileQueue);
                     }
                 }
-                linkClasses.add(clazz);
+            }
+
+            if (compileDependencies) {
+                for (String className : dependencyGraph.findReachableClasses()) {
+                    Clazz depClazz = config.getClazzes().load(className);
+                    if (depClazz != null && !linkClasses.contains(depClazz)) {
+                        compileQueue.add(depClazz);
+                    }
+                }
             }
         }
 
@@ -364,12 +440,12 @@ public class AppCompiler {
         }
 
         long duration = System.currentTimeMillis() - start;
-        config.getLogger().debug("Compiled %d classes in %.2f seconds", compiledCount, duration / 1000.0);
+        config.getLogger().info("Compiled %d classes in %.2f seconds", compiledCount, duration / 1000.0);
 
         return linkClasses;
     }
 
-    public void compile() throws IOException {
+    private void compile() throws IOException {
         updateCheck();
 
         Set<Clazz> linkClasses = compile(getRootClasses(), true, null);
@@ -388,7 +464,7 @@ public class AppCompiler {
         long start = System.currentTimeMillis();
         linker.link(linkClasses);
         long duration = System.currentTimeMillis() - start;
-        config.getLogger().debug("Linked %d classes in %.2f seconds", linkClasses.size(), duration / 1000.0);
+        config.getLogger().info("Linked %d classes in %.2f seconds", linkClasses.size(), duration / 1000.0);
     }
 
     public static void main(String[] args) throws IOException {
@@ -398,8 +474,8 @@ public class AppCompiler {
 
         boolean verbose = false;
         boolean run = false;
-        boolean createIpa = false;
-        List<Arch> ipaArchs = new ArrayList<>();
+        boolean archive = false;
+        List<Arch> archs = new ArrayList<>();
         String dumpConfigFile = null;
         List<String> runArgs = new ArrayList<String>();
         try {
@@ -482,12 +558,23 @@ public class AppCompiler {
                     builder.os("auto".equals(s) ? null : OS.valueOf(s));
                 } else if ("-arch".equals(args[i])) {
                     String s = args[++i];
-                    builder.arch("auto".equals(s) ? null : Arch.valueOf(s));
+                    if (!"auto".equals(s)) {
+                        archs.add(Arch.valueOf(s));
+                    }
+                } else if ("-archs".equals(args[i])) {
+                    for (String s : args[++i].split(":")) {
+                        if (!"auto".equals(s)) {
+                            archs.add(Arch.valueOf(s));
+                        }
+                    }
 //                } else if ("-cpu".equals(args[i])) {
 //                    builder.cpu(args[++i]);
                 } else if ("-target".equals(args[i])) {
                     String s = args[++i];
-                    builder.targetType("auto".equals(s) ? null : TargetType.valueOf(s));
+                    builder.targetType("auto".equals(s) ? null : s);
+                } else if ("-treeshaker".equals(args[i])) {
+                    String s = args[++i];
+                    builder.treeShakerMode(TreeShakerMode.valueOf(s));
                 } else if ("-forcelinkclasses".equals(args[i])) {
                     for (String p : args[++i].split(":")) {
                         p = p.replace('#', '*');
@@ -500,6 +587,10 @@ public class AppCompiler {
                 } else if ("-exportedsymbols".equals(args[i])) {
                     for (String p : args[++i].split(":")) {
                         builder.addExportedSymbol(p);
+                    }
+                } else if ("-unhidesymbols".equals(args[i])) {
+                    for (String p : args[++i].split(":")) {
+                        builder.addUnhideSymbol(p);
                     }
                 } else if ("-frameworks".equals(args[i])) {
                     for (String p : args[++i].split(":")) {
@@ -531,7 +622,7 @@ public class AppCompiler {
                     }
                     builder.cacerts(cacerts);
                 } else if ("-plist".equals(args[i])) {
-                    builder.iosInfoPList(new File(args[++i]));
+                    builder.infoPList(new File(args[++i]));
                 } else if ("-entitlements".equals(args[i])) {
                     builder.iosEntitlementsPList(new File(args[++i]));
                 } else if ("-resourcerules".equals(args[i])) {
@@ -543,14 +634,18 @@ public class AppCompiler {
                 } else if ("-sdk".equals(args[i])) {
                     builder.iosSdkVersion(args[++i]);
                 } else if ("-printdevicetypes".equals(args[i])) {
-                    printDeviceTypesAndExit(Home.find());
+                    printDeviceTypesAndExit();
                 } else if ("-devicetype".equals(args[i])) {
                     builder.iosDeviceType(args[++i]);
+                } else if ("-archive".equals(args[i])) {
+                    archive = true;
                 } else if ("-createipa".equals(args[i])) {
-                    createIpa = true;
+                    archive = true;
                 } else if ("-ipaarchs".equals(args[i])) {
                     for (String s : args[++i].split(":")) {
-                        ipaArchs.add(Arch.valueOf(s));
+                        if (!"auto".equals(s)) {
+                            archs.add(Arch.valueOf(s));
+                        }
                     }
                 } else if (args[i].startsWith("-D")) {
                 } else if (args[i].startsWith("-X")) {
@@ -574,12 +669,14 @@ public class AppCompiler {
                 i++;
             }
 
+            builder.archs(archs.toArray(new Arch[archs.size()]));
+
             while (i < args.length) {
                 runArgs.add(args[i++]);
             }
 
-            if (createIpa && run) {
-                throw new IllegalArgumentException("Specify either -run or -createipa, not both");
+            if (archive && run) {
+                throw new IllegalArgumentException("Specify either -run or -createipa/-archive, not both");
             }
 
             builder.logger(new ConsoleLogger(verbose));
@@ -601,13 +698,6 @@ public class AppCompiler {
 
             compiler = new AppCompiler(builder.build());
 
-            if (createIpa && (!(compiler.config.getTarget() instanceof IOSTarget)
-                    || !(compiler.config.getArch() == Arch.thumbv7 || compiler.config.getArch() == Arch.arm64)
-                    || compiler.config.getOs() != OS.ios)) {
-
-                throw new IllegalArgumentException("Must build for iOS thumbv7/arm64 when creating IPA");
-            }
-
         } catch (Throwable t) {
             String message = t.getMessage();
             if (t instanceof ArrayIndexOutOfBoundsException) {
@@ -623,11 +713,16 @@ public class AppCompiler {
         }
 
         try {
-            if (createIpa) {
-                compiler.createIpa(ipaArchs);
+            if (archive) {
+                compiler.build();
+                compiler.archive();
             } else {
-                compiler.compile();
+                if (run && !compiler.config.getTarget().canLaunch()) {
+                    throw new IllegalArgumentException("Cannot launch when building " 
+                            + compiler.config.getTarget().getType() + " binaries");
+                }
                 if (run) {
+                    compiler.compile(); // Just compile the first slice if multiple archs have been specified
                     LaunchParameters launchParameters = compiler.config.getTarget().createLaunchParameters();
                     if (launchParameters instanceof IOSSimulatorLaunchParameters) {
                         IOSSimulatorLaunchParameters simParams = (IOSSimulatorLaunchParameters) launchParameters;
@@ -638,13 +733,14 @@ public class AppCompiler {
                             deviceName = parts[0].trim();
                             sdkVersion = parts.length > 1 ? parts[1].trim() : null;
                         }
-                        DeviceType type = DeviceType.getBestDeviceType(compiler.config.getHome(),
+                        DeviceType type = DeviceType.getBestDeviceType(
                                 compiler.config.getArch(), null, deviceName, sdkVersion);
                         simParams.setDeviceType(type);
                     }
                     launchParameters.setArguments(runArgs);
                     compiler.launch(launchParameters);
                 } else {
+                    compiler.build();
                     compiler.config.getTarget().install();
                 }
             }
@@ -658,37 +754,55 @@ public class AppCompiler {
     }
 
     /**
-     * Creates an IPA with a single {@link Arch} as specified in
-     * {@link Config#getArch()}.
+     * Builds the binary (possibly a fat binary with multiple archs).
      */
-    public void createIpa() throws IOException {
-        createIpa(new ArrayList<Arch>());
+    public void build() throws IOException {
+        List<Arch> archs = this.config.getArchs();
+        if (archs.isEmpty()) {
+            archs = config.getTarget().getDefaultArchs();
+        }
+        if (archs.isEmpty()) {
+            throw new IllegalArgumentException("No archs specified in config");
+        }
+        if (archs.size() == 1 && this.config.getArch().equals(archs.get(0))) {
+            // No need to clone configs for each slice.
+            compile();
+        } else {
+            Map<Arch, File> slices = new TreeMap<>();
+            for (Arch arch : archs) {
+                this.config.getLogger().info("Building %s slice", arch);
+                Config sliceConfig = this.config.builder()
+                        .arch(arch)
+                        .tmpDir(new File(this.config.getTmpDir(), arch.toString()))
+                        .build();
+                new AppCompiler(sliceConfig).compile();
+                slices.put(arch, new File(sliceConfig.getTmpDir(), sliceConfig.getExecutableName()));
+                for (Path path : sliceConfig.getResourcesPaths()) {
+                    if (!this.config.getResourcesPaths().contains(path)) {
+                        this.config.addResourcesPath(path);
+                    }
+                }
+            }
+            this.config.getTarget().buildFat(slices);
+        }
     }
 
     /**
-     * Creates an IPA with a fat binary containing one slice for each of the
-     * specified {@link Arch}s.
+     * Archives the binary previously built using {@link #build()} along with
+     * all resources specified in the {@link Config} and supporting files and
+     * stores the archive in the {@link Config#getInstallDir()}.
      */
-    public void createIpa(List<Arch> archs) throws IOException {
-        if (archs.isEmpty()) {
-            archs.add(this.config.getArch());
-        }
-        List<File> slices = new ArrayList<>();
-        for (Arch arch : archs) {
-            this.config.getLogger().info("Creating %s slice for IPA", arch);
-            Config sliceConfig = this.config.builder()
-                    .arch(arch)
-                    .tmpDir(new File(this.config.getTmpDir(), arch.toString()))
-                    .build();
-            new AppCompiler(sliceConfig).compile();
-            slices.add(new File(sliceConfig.getTmpDir(), sliceConfig.getExecutableName()));
-            for (Path path : sliceConfig.getResourcesPaths()) {
-                if (!this.config.getResourcesPaths().contains(path)) {
-                    this.config.addResourcesPath(path);
-                }
-            }
-        }
-        ((IOSTarget) this.config.getTarget()).createIpa(slices);
+    public void archive() throws IOException {
+        config.getTarget().archive();
+    }
+
+    /**
+     * Installs the binary previously built using {@link #build()} along with
+     * all resources specified in the {@link Config} and supporting files into
+     * the {@link Config#getInstallDir()}.
+     */
+    public void install() throws IOException {
+        config.getTarget().install();
     }
 
     public int launch(LaunchParameters launchParameters) throws Throwable {
@@ -731,8 +845,8 @@ public class AppCompiler {
         }
     }
 
-    private static void printDeviceTypesAndExit(Home home) throws IOException {
-        List<DeviceType> types = DeviceType.listDeviceTypes(home);
+    private static void printDeviceTypesAndExit() throws IOException {
+        List<DeviceType> types = DeviceType.listDeviceTypes();
         for (DeviceType type : types) {
             System.out.println(type.getSimpleDeviceTypeId());
         }
@@ -747,6 +861,14 @@ public class AppCompiler {
     private static void printUsageAndExit(String errorMessage, List<Plugin> plugins) {
         if (errorMessage != null) {
             System.err.format("robovm: %s\n", errorMessage);
+        }
+        List<String> targets = new ArrayList<>();
+        targets.add(ConsoleTarget.TYPE);
+        targets.add(IOSTarget.TYPE);
+        for (Plugin plugin : plugins) {
+            if (plugin instanceof TargetPlugin) {
+                targets.add(((TargetPlugin) plugin).getTarget().getType());
+            }
         }
         // @formatter:off 
         System.err.println("Usage: robovm [-options] class [run-args]");
@@ -778,16 +900,20 @@ public class AppCompiler {
                          + "                        ${java.io.tmpdir}.");
         System.err.println("  -jar <path>           Use main class as specified by the manifest in this JAR \n" 
                          + "                        archive.");
-        System.err.println("  -o <name>             The name of the target executable");
+        System.err.println("  -o <name>             The name of the target binary");
         System.err.println("  -os <name>            The name of the OS to build for. Allowed values are \n" 
                          + "                        'auto', 'linux', 'macosx' and 'ios'. Default is 'auto' which\n" 
                          + "                        means use the LLVM deafult.");
         System.err.println("  -arch <name>          The name of the LLVM arch to compile for. Allowed values\n" 
                          + "                        are 'auto', 'x86', 'x86_64', 'thumbv7', 'arm64'. Default is\n" 
                          + "                        'auto' which means use the LLVM default.");
+        System.err.println("  -archs <list>         : separated list of archs. Used to build a fat binary which\n" 
+                         + "                        includes all the specified archs. Allowed values\n" 
+                         + "                        are 'x86', 'x86_64', 'thumbv7', 'arm64'.");
         System.err.println("  -cpu <name>           The name of the LLVM cpu to compile for. The LLVM default\n" 
                          + "                        is used if not specified. Use llc to determine allowed values.");
-        System.err.println("  -target <name>        The target to build for. Either 'auto', 'console' or 'ios'.\n" 
+        System.err.println("  -target <name>        The target to build for. One of:\n" 
+                         + "                          'auto', '" + StringUtils.join(targets, "', '") + "'\n" 
                          + "                        The default is 'auto' which means use -os to decide.");
         System.err.println("  -forcelinkclasses <list>\n" 
                          + "                        : separated list of class patterns matching\n" 
@@ -797,12 +923,22 @@ public class AppCompiler {
                          + "                        option has been given. A pattern is an ANT style path pattern,\n" 
                          + "                        e.g. com.foo.**.bar.*.Main. An alternative syntax using # is\n" 
                          + "                        also supported, e.g. com.##.#.Main.");
+        System.err.println("  -treeshaker <mode>    The tree shaking algorithm to use. 'none', 'conservative' or\n" 
+                         + "                        'aggressive'. 'aggressive' will remove all unreachable method\n" 
+                         + "                        implementations when it's safe to do so. 'conservative' only\n" 
+                         + "                        removes unreachable methods marked as @WeaklyLinked. Methods\n" 
+                         + "                        in the main class and in force linked classes will never be\n" 
+                         + "                        stripped. Default is 'none'.");
         System.err.println("  -threads <n>          The number of threads to use during class compilation. By\n" 
                          + "                        default the number returned by Runtime.availableProcessors()\n" 
                          + "                        will be used (" + Runtime.getRuntime().availableProcessors() + " on this host).");
         System.err.println("  -run                  Run the executable directly without installing it (-d is\n" 
                          + "                        ignored). The executable will be executed from the\n" 
                          + "                        temporary dir specified with -tmp.");
+        System.err.println("  -archive              Archives the binary along with resources and supporting\n" 
+                         + "                        files in a format suitable for distribution (e.g. an IPA\n" 
+                         + "                        file for iOS apps). The archive will be created in the\n" 
+                         + "                        install dir specified using -d.");
         System.err.println("  -debug                Generates debug information");
         System.err.println("  -use-debug-libs       Links against debug versions of the RoboVM VM libraries");
         System.err.println("  -dynamic-jni          Use dynamic JNI. Native methods will be dynamically\n" 
@@ -819,6 +955,11 @@ public class AppCompiler {
                          + "                        Wildcards can be used. * matches zero or more characters,\n" 
                          + "                        ? matches one character. [abc], [a-z] matches one character\n" 
                          + "                        from the specified set of characters.");
+        System.err.println("  -unhidesymbols <list>\n" 
+                         + "                        : separated list of global hidden symbols in linked in static\n" 
+                         + "                        libraries or frameworks that should be unhidden to be\n" 
+                         + "                        accessible to bro @Bridge methods. Wildcards are not\n" 
+                         + "                        supported. Unhidden symbols will always be exported.");
         System.err.println("  -frameworks <list>    : separated list of frameworks that should be included\n" 
                          + "                        when linking the final executable.");
         System.err.println("  -weakframeworks <list>\n" 
@@ -851,10 +992,10 @@ public class AppCompiler {
         System.err.println("  -help, -?             Display this information");
         System.err.println("Target specific options:");
         System.err.println("  -createipa            (iOS) Create a .IPA file from the app bundle and place it in\n"
-                         + "                        the install dir specified with -d.");
+                         + "                        the install dir specified with -d. Alias for -archive.");
         System.err.println("  -ipaarchs             (iOS) : separated list of architectures to include in the IPA.\n" 
-                         + "                        Either thumbv7 or arm64 or both.");
-        System.err.println("  -plist <file>         (iOS) Info.plist file to be used by the app. If not specified\n"
+                         + "                        Either thumbv7 or arm64 or both. Alias for -archs.");
+        System.err.println("  -plist <file>         (iOS/OSX) Info.plist file to be used by the app. If not specified\n"
                          + "                        a simple Info.plist will be generated with a CFBundleIdentifier\n" 
                          + "                        based on the main class name or executable file name.");
         System.err.println("  -entitlements <file>  (iOS) Property list (.plist) file containing entitlements\n" 

@@ -16,13 +16,15 @@
 #ifndef ROBOVM_INIT_H
 #define ROBOVM_INIT_H
 
-extern ClassLoader* systemClassLoader;
+extern Object* systemClassLoader;
 
+extern void rvmParseOption(char* arg, Options* options);
 extern jboolean rvmInitOptions(int argc, char* argv[], Options* options, jboolean ignoreRvmArgs);
 extern Env* rvmStartup(Options* options);
 extern VM* rvmCreateVM(Options* options);
 extern Env* rvmCreateEnv(VM* vm);
 extern jboolean rvmRun(Env* env);
+extern jboolean rvmDestroyVM(VM* vm);
 extern void rvmShutdown(Env* env, jint code);
 extern void rvmAbort(char* format, ...);
 

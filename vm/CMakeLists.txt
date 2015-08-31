@@ -3,7 +3,7 @@ set(MACOSX_SDK_VERSION 10.10)
 # The minimum Mac OS X version needed by apps built by RoboVM
 set(MACOSX_MIN_VERSION 10.6)
 # The iOS SDK version required when building the VM libs
-set(IOS_SDK_VERSION 8.3)
+set(IOS_SDK_VERSION 8.4)
 # The minimum iOS version needed by apps built by RoboVM
 set(IOS_MIN_VERSION 6.0)
 
@@ -11,6 +11,7 @@ cmake_minimum_required(VERSION 2.8.8)
 project(build)
 include(CheckCCompilerFlag)
 include(ExternalProject)
+include(${CMAKE_SOURCE_DIR}/MergeStaticLibObjectFiles.cmake)
 
 enable_testing()
 
@@ -113,9 +114,9 @@ if(DARWIN)
 endif()
 
 # Set up global C and C++ compiler flags
-set(C_FLAGS "${C_FLAGS} -std=gnu99")
-set(CXX_FLAGS "${CXX_FLAGS} -std=gnu++11")
-set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall -fvisibility=hidden -fdata-sections -ffunction-sections")
+set(C_FLAGS "${C_FLAGS} -std=gnu99 -fPIC")
+set(CXX_FLAGS "${CXX_FLAGS} -std=gnu++11 -fPIC")
+set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall -fdata-sections -ffunction-sections -fPIC")
 if(CARCH)
   set(C_CXX_FLAGS "${C_CXX_FLAGS} -arch ${CARCH}")
 elseif(64_BIT)
@@ -137,6 +138,7 @@ elseif(IOS)
 endif()
 
 # Linker flags
+set(LD_FLAGS "${LD_FLAGS} -fPIC")
 if(CARCH)
   set(LD_FLAGS "${LD_FLAGS} -arch ${CARCH}")
 elseif(64_BIT)
@@ -166,6 +168,7 @@ set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${LD_FLAGS}")
 set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${LD_FLAGS}")
 
 # Assembler flags
+set(ASM_FLAGS "${ASM_FLAGS} -fPIC")
 if(CARCH)
   set(ASM_FLAGS "${ASM_FLAGS} -c -arch ${CARCH}")
 elseif(64_BIT)
@@ -233,14 +236,12 @@ else()
   set(EXTGC_MARK_DESCR_OFFSET 12)
 endif()
 
-set(EXT_C_FLAGS "${C_CXX_FLAGS}")
-set(EXT_LD_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
-set(EXTGC_C_FLAGS "${EXT_C_FLAGS} -DGC_DISABLE_INCREMENTAL -DGC_FORCE_UNMAP_ON_GCOLLECT -DMARK_DESCR_OFFSET=${EXTGC_MARK_DESCR_OFFSET}")
-set(EXTGC_LD_FLAGS "${EXT_LD_FLAGS}")
+set(EXTGC_C_FLAGS "${C_CXX_FLAGS} -DGC_DISABLE_INCREMENTAL -DGC_DISCOVER_TASK_THREADS -DGC_FORCE_UNMAP_ON_GCOLLECT -DMARK_DESCR_OFFSET=${EXTGC_MARK_DESCR_OFFSET}")
+set(EXTGC_LD_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
 if(DARWIN)
   set(EXTGC_C_FLAGS "${EXTGC_C_FLAGS} -DNO_DYLD_BIND_FULLY_IMAGE")
 endif()
-set(EXTGC_PARAMS  "--enable-shared=no --enable-munmap=1")
+set(EXTGC_PARAMS  "--enable-shared=no --enable-munmap=1 --enable-parallel-mark=yes")
 if (CMAKE_BUILD_TYPE STREQUAL "debug")
   set(EXTGC_C_FLAGS "${EXTGC_C_FLAGS} -g")
   set(EXTGC_PARAMS "${EXTGC_PARAMS} --enable-gc-debug=yes")
@@ -264,7 +265,7 @@ ExternalProject_Add(libatomic_ops
 ExternalProject_Add(extgc 
   DEPENDS libatomic_ops
   GIT_REPOSITORY git://github.com/robovm/bdwgc.git
-  GIT_TAG 330797462474976093d631058f784c843040e294
+  GIT_TAG 0458ff8c3cc04376bb4584de7729e6dbb6384bad
   UPDATE_COMMAND ""
   PATCH_COMMAND bash -c "rm -rf libatomic_ops && ln -s ../../../libatomic_ops-prefix/src/libatomic_ops libatomic_ops"
   CONFIGURE_COMMAND bash -c "CC=${CMAKE_C_COMPILER} CFLAGS='${EXTGC_C_FLAGS}' LDFLAGS='${EXTGC_LD_FLAGS}' ./configure ${EXT_HOST} ${EXTGC_PARAMS} --prefix=${CMAKE_BINARY_DIR}/gc"

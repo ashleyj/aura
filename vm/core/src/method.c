@@ -116,7 +116,7 @@ jboolean rvmInitMethods(Env* env) {
     if (!java_lang_StackTraceElement) {
         return FALSE;
     }
-    java_lang_StackTraceElement_constructor = rvmGetInstanceMethod(env, java_lang_StackTraceElement, "<init>", 
+    java_lang_StackTraceElement_constructor = rvmGetInstanceMethod(env, java_lang_StackTraceElement, "<init>",
                                       "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;I)V");
     if (!java_lang_StackTraceElement_constructor) {
         return FALSE;
@@ -125,7 +125,7 @@ jboolean rvmInitMethods(Env* env) {
     if (!empty_java_lang_StackTraceElement_array) {
         return FALSE;
     }
-    if (!rvmAddObjectGCRoot(env, (Object*) empty_java_lang_StackTraceElement_array)) {
+    if (!rvmAddGlobalRef(env, (Object*) empty_java_lang_StackTraceElement_array)) {
         return FALSE;
     }
 
@@ -639,62 +639,6 @@ static Object* callObjectMethod(Env* env, CallInfo* callInfo) {
     return result;
 }
 
-static jboolean callBooleanMethod(Env* env, CallInfo* callInfo) {
-    jboolean result = FALSE;
-    jboolean (*f)(CallInfo*) = (jboolean (*)(CallInfo*)) _call0;
-    rvmPushGatewayFrame(env);
-    TrycatchContext tc = {0};
-    tc.sel = CATCH_ALL_SEL;
-    if (!rvmTrycatchEnter(env, &tc)) {
-        result = f(callInfo);
-    }
-    rvmTrycatchLeave(env);
-    rvmPopGatewayFrame(env);
-    return result;
-}
-
-static jbyte callByteMethod(Env* env, CallInfo* callInfo) {
-    jbyte result = 0;
-    jbyte (*f)(CallInfo*) = (jbyte (*)(CallInfo*)) _call0;
-    rvmPushGatewayFrame(env);
-    TrycatchContext tc = {0};
-    tc.sel = CATCH_ALL_SEL;
-    if (!rvmTrycatchEnter(env, &tc)) {
-        result = f(callInfo);
-    }
-    rvmTrycatchLeave(env);
-    rvmPopGatewayFrame(env);
-    return result;
-}
-
-static jchar callCharMethod(Env* env, CallInfo* callInfo) {
-    jchar result = 0;
-    jchar (*f)(CallInfo*) = (jchar (*)(CallInfo*)) _call0;
-    rvmPushGatewayFrame(env);
-    TrycatchContext tc = {0};
-    tc.sel = CATCH_ALL_SEL;
-    if (!rvmTrycatchEnter(env, &tc)) {
-        result = f(callInfo);
-    }
-    rvmTrycatchLeave(env);
-    rvmPopGatewayFrame(env);
-    return result;
-}
-
-static jshort callShortMethod(Env* env, CallInfo* callInfo) {
-    jshort result = 0;
-    jshort (*f)(CallInfo*) = (jshort (*)(CallInfo*)) _call0;
-    rvmPushGatewayFrame(env);
-    TrycatchContext tc = {0};
-    tc.sel = CATCH_ALL_SEL;
-    if (!rvmTrycatchEnter(env, &tc)) {
-        result = f(callInfo);
-    }
-    rvmTrycatchLeave(env);
-    rvmPopGatewayFrame(env);
-    return result;
-}
-
 static jint callIntMethod(Env* env, CallInfo* callInfo) {
     jint result = 0;
     jint (*f)(CallInfo*) = (jint (*)(CallInfo*)) _call0;
@@ -707,6 +651,22 @@ static jint callIntMethod(Env* env, CallInfo* callInfo) {
     rvmTrycatchLeave(env);
     rvmPopGatewayFrame(env);
     return result;
+}
+
+static jboolean callBooleanMethod(Env* env, CallInfo* callInfo) {
+    return ((jboolean) callIntMethod(env, callInfo)) == 0 ? FALSE : TRUE;
+}
+
+static jbyte callByteMethod(Env* env, CallInfo* callInfo) {
+    return (jbyte) callIntMethod(env, callInfo);
+}
+
+static jchar callCharMethod(Env* env, CallInfo* callInfo) {
+    return (jchar) callIntMethod(env, callInfo);
+}
+
+static jshort callShortMethod(Env* env, CallInfo* callInfo) {
+    return (jshort) callIntMethod(env, callInfo);
 }
 
 static jlong callLongMethod(Env* env, CallInfo* callInfo) {
@@ -1401,14 +1361,14 @@ jboolean rvmUnregisterNative(Env* env, NativeMethod* method) {
     return TRUE;
 }
 
-void* rvmResolveNativeMethodImpl(Env* env, NativeMethod* method, const char* shortMangledName, const char* longMangledName, ClassLoader* classLoader, void** ptr) {
+void* rvmResolveNativeMethodImpl(Env* env, NativeMethod* method, const char* shortMangledName, const char* longMangledName, Object* classLoader, void** ptr) {
     void* f = method->nativeImpl;
     if (!f) {
         DynamicLib* nativeLibs = NULL;
-        if (!classLoader || classLoader->parent == NULL) {
+        if (!classLoader || rvmGetParentClassLoader(env, classLoader) == NULL) {
             // This is the bootstrap classloader
             nativeLibs = bootNativeLibs;
-        } else if (classLoader->parent->parent == NULL && classLoader->object.clazz->classLoader == NULL) {
+        } else if (rvmGetParentParentClassLoader(env, classLoader) == NULL && classLoader->clazz->classLoader == NULL) {
             // This is the system classloader
             nativeLibs = mainNativeLibs;
         } else {
@@ -1449,12 +1409,12 @@ void* rvmResolveNativeMethodImpl(Env* env, NativeMethod* method, const char* sho
 }
 
 
-jboolean rvmLoadNativeLibrary(Env* env, const char* path, ClassLoader* classLoader) {
+jboolean rvmLoadNativeLibrary(Env* env, const char* path, Object* classLoader) {
     DynamicLib** nativeLibs = NULL;
-    if (!classLoader || classLoader->parent == NULL) {
+    if (!classLoader || rvmGetParentClassLoader(env, classLoader) == NULL) {
         // This is the bootstrap classloader
         nativeLibs = &bootNativeLibs;
-    } else if (classLoader->parent->parent == NULL && classLoader->object.clazz->classLoader == NULL) {
+    } else if (rvmGetParentParentClassLoader(env, classLoader) == NULL && classLoader->clazz->classLoader == NULL) {
         // This is the system classloader
         nativeLibs = &mainNativeLibs;
     } else {

@@ -32,7 +32,8 @@ import org.junit.Test;
 import org.robovm.compiler.config.Config.Builder;
 import org.robovm.compiler.config.Config.Home;
 import org.robovm.compiler.config.Config.Lib;
-import org.robovm.compiler.config.Config.TargetType;
+import org.robovm.compiler.target.ConsoleTarget;
+import org.robovm.compiler.target.ios.IOSTarget;
 import org.zeroturnaround.zip.ZipUtil;
 
 /**
@@ -84,7 +85,9 @@ public class ConfigTest {
                 ), config.getResources());
         assertEquals(Arrays.asList("javax.**.*"), config.getForceLinkClasses());
         assertEquals(OS.macosx, config.getOs());
-        assertEquals(Arch.x86, config.getArch());
+        assertEquals(2, config.getArchs().size());
+        assertEquals(Arch.x86, config.getArchs().get(0));
+        assertEquals(Arch.x86_64, config.getArchs().get(1));
     }
     
     @Test
@@ -105,7 +108,8 @@ public class ConfigTest {
                 config.getResources());
         assertEquals(Arrays.asList("javax.**.*"), config.getForceLinkClasses());
         assertEquals(OS.macosx, config.getOs());
-        assertEquals(Arch.x86, config.getArch());
+        assertEquals(1, config.getArchs().size());
+        assertEquals(Arch.x86, config.getArchs().get(0));
     }
     
     @Test
@@ -130,7 +134,7 @@ public class ConfigTest {
                     .flatten(true));
         builder.addForceLinkClass("javax.**.*");
         builder.os(OS.macosx);
-        builder.arch(Arch.x86);
+        builder.archs(Arch.x86, Arch.x86_64);
         
         StringWriter out = new StringWriter();
         builder.write(out, wd);
@@ -155,7 +159,7 @@ public class ConfigTest {
         builder.iosInfoPList(new File("Info.plist"));
         builder.iosEntitlementsPList(new File("entitlements.plist"));
         builder.iosResourceRulesPList(new File(tmp, "resourcerules.plist"));
-        builder.targetType(TargetType.ios);
+        builder.targetType(IOSTarget.TYPE);
         
         StringWriter out = new StringWriter();
         builder.write(out, wd);
@@ -228,7 +232,7 @@ public class ConfigTest {
         builder.cacheDir(cacheDir);
         builder.os(OS.macosx);
         builder.arch(Arch.x86);
-        builder.targetType(TargetType.console);
+        builder.targetType(ConsoleTarget.TYPE);
         builder.mainClass("Main");
         builder.addClasspathEntry(p1);
         builder.addClasspathEntry(p2);
@@ -304,7 +308,7 @@ public class ConfigTest {
         builder.cacheDir(cacheDir);
         builder.os(OS.macosx);
         builder.arch(Arch.x86);
-        builder.targetType(TargetType.console);
+        builder.targetType(ConsoleTarget.TYPE);
         builder.mainClass("Main");
         builder.addBootClasspathEntry(new File(tmpDir, "bcp1"));
         builder.addBootClasspathEntry(new File(tmpDir, "bcp2"));
@@ -359,5 +363,23 @@ public class ConfigTest {
         assertNotSame(config.getTarget(), config2.getTarget());
         assertNotSame(config.getClazzes(), config2.getClazzes());
     }
-    
+
+    @Test
+    public void testGetFileName() throws Exception {
+        assertEquals("201a6b3053cc1422d2c3670b62616221d2290929.class.o", Config.getFileName("Foo", "class.o", 0));
+        assertEquals("201a6b3053cc1422d2c3670b62616221d2290929.class.o", Config.getFileName("Foo", "class.o", 1));
+        assertEquals("201a6b3053cc1422d2c3670b62616221d2290929.class.o", Config.getFileName("Foo", "class.o", 10));
+        assertEquals("Foo.class.o", Config.getFileName("Foo", "class.o", 11));
+
+        assertEquals("com/example/201a6b3053cc1422d2c3670b62616221d2290929.class.o",
+                Config.getFileName("com/example/Foo", "class.o", 0));
+        assertEquals("com/example/201a6b3053cc1422d2c3670b62616221d2290929.class.o",
+                Config.getFileName("com/example/Foo", "class.o", 1));
+        assertEquals("com/example/201a6b3053cc1422d2c3670b62616221d2290929.class.o",
+                Config.getFileName("com/example/Foo", "class.o", 10));
+        assertEquals("com/example/Foo.class.o", Config.getFileName("com/example/Foo", "class.o", 11));
+
+        assertEquals("com/example/AB9ca44297c0e0d22df654119dce73ee52d3d51c71.class.o",
+                Config.getFileName("com/example/ABCDEFGIHJABCDEFGIHJABCDEFGIHJABCDEFGIHJABCDEFGIHJ", "class.o", 50));
+    }
 }

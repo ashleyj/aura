@@ -28,7 +28,7 @@ import java.util.List;
 
 import org.robovm.compiler.clazz.Clazz;
 import org.robovm.compiler.clazz.ClazzInfo;
-import org.robovm.compiler.clazz.ClazzInfo.MethodInfo;
+import org.robovm.compiler.clazz.MethodInfo;
 import org.robovm.compiler.llvm.Function;
 import org.robovm.compiler.llvm.FunctionAttribute;
 import org.robovm.compiler.llvm.FunctionRef;
@@ -211,11 +211,11 @@ public class FunctionBuilder {
                 .linkage(external).attribs(noinline, optsize).build();
     }
     
-    public static Function method(SootMethod method) {
-        return new FunctionBuilder(methodSymbol(method), getFunctionType(method)).linkage(external)
+    public static Function method(SootMethod method, boolean weak) {
+        return new FunctionBuilder(methodSymbol(method), getFunctionType(method)).linkage(weak ? Linkage.weak : external)
                 .attribs(noinline, optsize).build();
     }
-    
+
     public static Function info(String internalName) {
         return new FunctionBuilder(infoSymbol(internalName), new FunctionType(I8_PTR_PTR))
                 .linkage(external).attribs(alwaysinline, optsize).build();
@@ -227,6 +227,6 @@ public class FunctionBuilder {
     
     public static Function callback(SootMethod method, FunctionType functionType) {
         return new FunctionBuilder(callbackSymbol(method), functionType)
-                .linkage(external).attribs(noinline, optsize).build();
+                .linkage(internal).attribs(noinline, optsize).build();
     }
 }

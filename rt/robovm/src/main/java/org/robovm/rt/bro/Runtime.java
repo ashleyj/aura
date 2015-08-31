@@ -39,10 +39,15 @@ import org.robovm.rt.bro.annotation.Library;
  */
 public final class Runtime {
 
+    private static final String UNHIDDEN_SYMBOL_PREFIX = "_unhidden_";
     private static final Map<String, Long> handles = new HashMap<String, Long>();
     private static final List<String> searchPaths;
     
     static {
+        searchPaths = setupDyLdPaths();
+    }
+    
+    private static List<String> setupDyLdPaths() {
         List<String> paths = new ArrayList<String>();
         String home = System.getProperty("user.home");
 
@@ -119,9 +124,9 @@ public final class Runtime {
             }
         }
         
-        searchPaths = uniq(paths);
+        return uniq(paths);        
     }
-
+    
     private static List<String> uniq(List<String> l) {
         Set<String> seen = new HashSet<String>();
         List<String> result = new ArrayList<String>();
@@ -133,7 +138,7 @@ public final class Runtime {
         }
         return result;
     }
-    
+
     private static void readLdSoConf(File f, List<String> paths) throws IOException {
         if (!f.exists() || !f.isFile()) {
             return;
@@ -198,6 +203,9 @@ public final class Runtime {
             symbol = method.getName();
         }
         long f = Dl.resolve(handle, symbol);
+        if (f == 0L) {
+            f = Dl.resolve(handle, UNHIDDEN_SYMBOL_PREFIX + symbol);
+        }
         if (f == 0L && !bridge.optional()) {
             throw new UnsatisfiedLinkError("Failed to resolve native function '" + symbol + "' " 
                     + "for method " + method + " with @Bridge annotation " + bridge 
@@ -218,6 +226,9 @@ public final class Runtime {
             symbol = method.getName();
         }
         long f = Dl.resolve(handle, symbol);
+        if (f == 0L) {
+            f = Dl.resolve(handle, UNHIDDEN_SYMBOL_PREFIX + symbol);
+        }
         if (f == 0L && !globalValue.optional()) {
             throw new UnsatisfiedLinkError("Failed to resolve symbol '" + symbol + "' " 
                     + "for method " + method + " with @GlobalValue annotation " + globalValue 
@@ -229,6 +240,9 @@ public final class Runtime {
     public static long resolveBridge(String libraryName, String symbol, Method method) {
         long handle = getHandle(libraryName);
         long f = Dl.resolve(handle, symbol);
+        if (f == 0L) {
+            f = Dl.resolve(handle, UNHIDDEN_SYMBOL_PREFIX + symbol);
+        }
         if (f == 0L) {
             throw new UnsatisfiedLinkError("Failed to resolve native function " + symbol
                     + "for method " + method + " in library " + libraryName);
@@ -284,6 +298,18 @@ public final class Runtime {
                         handle = Dl.open(name);
                         if (handle == 0L) {
                             handle = Dl.open(libName);
+                            // on iOS 9+, opening just by
+                            // library name does not work anymore.
+                            // We bruteforce through search paths
+                            // instead
+                            if (handle == 0L) {
+                                for (String searchPath : searchPaths) {
+                                    handle = Dl.open(new File(searchPath, libName).getAbsolutePath());
+                                    if (handle != 0L) {
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     }
                 }

@@ -16,9 +16,7 @@
  */
 package org.robovm.compiler.util;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,11 +24,11 @@ import java.util.List;
 import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.IOUtils;
 import org.robovm.compiler.config.Arch;
 import org.robovm.compiler.config.Config;
 import org.robovm.compiler.config.OS;
 import org.robovm.compiler.config.tools.TextureAtlas;
+import org.robovm.compiler.log.ConsoleLogger;
 import org.robovm.compiler.log.Logger;
 import org.robovm.compiler.target.ios.IOSTarget;
 
@@ -48,6 +46,9 @@ public class ToolchainUtil {
     private static String TEXTUREATLAS;
     private static String ACTOOL;
     private static String IBTOOL;
+    private static String NM;
+    private static String OTOOL;
+    private static String FILE;
 
     private static String getIOSDevClang() throws IOException {
         if (IOS_DEV_CLANG == null) {
@@ -103,6 +104,27 @@ public class ToolchainUtil {
             LIPO = findXcodeCommand("lipo", "iphoneos");
         }
         return LIPO;
+    }
+
+    private static String getNm() throws IOException {
+        if (NM == null) {
+            NM = findXcodeCommand("nm", "iphoneos");
+        }
+        return NM;
+    }
+    
+    private static String getOtool() throws IOException {
+        if(OTOOL == null) {
+            OTOOL = findXcodeCommand("otool", "iphoneos");
+        }
+        return OTOOL;
+    }
+    
+    private static String getFile() throws IOException {
+        if (FILE == null) {
+            FILE = findXcodeCommand("file", "iphoneos");
+        }
+        return FILE;
     }
 
     private static String getPackageApplication() throws IOException {
@@ -252,48 +274,97 @@ public class ToolchainUtil {
         new Executor(config.getLogger(), getPlutil()).args("-convert", "binary1", inFile, "-o", outFile).exec();
     }
 
+    public static void decompileXml(Config config, File inFile, File outFile) throws IOException {
+        new Executor(Logger.NULL_LOGGER, getPlutil()).args("-convert", "xml1", inFile, "-o", outFile).exec();
+    }
+
+    public static String nm(File file) throws IOException {
+        return new Executor(Logger.NULL_LOGGER, getNm()).args(file.getAbsolutePath()).execCapture();
+    }
+
+    public static String otool(File file) throws IOException {
+        return new Executor(new ConsoleLogger(false), getOtool()).args("-L", file.getAbsolutePath()).execCapture();
+    }
+
     public static void lipo(Config config, File outFile, List<File> inFiles) throws IOException {
         new Executor(config.getLogger(), getLipo()).args(inFiles, "-create", "-output", outFile).exec();
+    }
+    
+    public static void lipoRemoveArchs(Config config, File inFile, File outFile, Arch ... archs) throws IOException {
+        List<Object> args = new ArrayList<>();
+        args.add(inFile);
+        for(Arch arch: archs) {
+            args.add("-remove");
+            args.add(arch.getClangName());
+        }
+        args.add("-output");
+        args.add(outFile);
+        new Executor(Logger.NULL_LOGGER, getLipo()).args(args).exec();
+    }
+    
+    public static String lipoInfo(Config config, File inFile) throws IOException {
+        List<Object> args = new ArrayList<>();
+        args.add("-info");
+        args.add(inFile);        
+        return new Executor(Logger.NULL_LOGGER, getLipo()).args(args).execCapture();
+    }
+    
+    public static String file(File file) throws IOException {
+        return new Executor(Logger.NULL_LOGGER, getFile()).args(file).execCapture();
     }
 
     public static void packageApplication(Config config, File appDir, File outFile) throws IOException {
         new Executor(config.getLogger(), getPackageApplication()).args(appDir, "-o", outFile).exec();
     }
 
+    private static List<File> writeObjectsFiles(Config config, List<File> objectFiles, int maxObjectsPerFile,
+            boolean quote) throws IOException {
+
+        ArrayList<File> files = new ArrayList<>();
+        for (int i = 0, start = 0; start < objectFiles.size(); i++, start += maxObjectsPerFile) {
+            List<File> partition = objectFiles.subList(start, Math.min(objectFiles.size(), start + maxObjectsPerFile));
+            List<String> paths = new ArrayList<>();
+            for (File f : partition) {
+                paths.add((quote ? "\"" : "") + f.getAbsolutePath() + (quote ? "\"" : ""));
+            }
+
+            File objectsFile = new File(config.getTmpDir(), "objects" + i);
+            FileUtils.writeLines(objectsFile, paths, "\n");
+            files.add(objectsFile);
+        }
+
+        return files;
+    }
+
     public static void link(Config config, List<String> args, List<File> objectFiles, List<String> libs, File outFile)
             throws IOException {
-        File objectsFile = new File(config.getTmpDir(), "objects");
-        if (config.getOs().getFamily() == OS.Family.darwin) {
-            // The Xcode linker doesn't need paths with spaces to be quoted and
-            // will fail if we do quote
-            FileUtils.writeLines(objectsFile, objectFiles, "\n");
-        } else {
-            // The linker on Linux will fail if we don't quote paths with spaces
-            BufferedOutputStream objectsOut = null;
-            try {
-                objectsOut = new BufferedOutputStream(new FileOutputStream(objectsFile));
-                for (File f : objectFiles) {
-                    objectsOut.write('"');
-                    objectsOut.write(f.getAbsolutePath().getBytes());
-                    objectsOut.write('"');
-                    objectsOut.write('\n');
-                }
-            } finally {
-                IOUtils.closeQuietly(objectsOut);
-            }
-        }
+        
+        boolean isDarwin = config.getOs().getFamily() == OS.Family.darwin;
+        /*
+         * The Xcode linker doesn't need paths with spaces to be quoted and will
+         * fail if we do quote. The Xcode linker will crash if we pass more than
+         * 65535 files in an objects file.
+         * 
+         * The linker on Linux will fail if we don't quote paths with spaces.
+         */
+        List<File> objectsFiles = writeObjectsFiles(config, objectFiles, isDarwin ? 0xffff : Integer.MAX_VALUE,
+                !isDarwin);
 
         List<String> opts = new ArrayList<String>();
         if (config.isDebug()) {
             opts.add("-g");
         }
-        if (config.getOs().getFamily() == OS.Family.darwin) {
+        if (isDarwin) {
             opts.add("-arch");
             opts.add(config.getArch().getClangName());
-            opts.add("-Wl,-filelist," + objectsFile.getAbsolutePath());
+            for (File objectsFile : objectsFiles) {
+                opts.add("-Wl,-filelist," + objectsFile.getAbsolutePath());
+            }
         } else {
             opts.add(config.getArch().is32Bit() ? "-m32" : "-m64");
-            opts.add("@" + objectsFile.getAbsolutePath());
+            for (File objectsFile : objectsFiles) {
+                opts.add("@" + objectsFile.getAbsolutePath());
+            }
         }
         opts.addAll(args);
 

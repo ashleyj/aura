@@ -34,10 +34,16 @@ import org.robovm.compiler.util.io.OpenOnWriteFileOutputStream;
  * Console {@link Target} implementation.
  */
 public class ConsoleTarget extends AbstractTarget {
+    public static final String TYPE = "console";
+
     private OS os;
     private Arch arch;
 
     public ConsoleTarget() {
+    }
+    
+    public String getType() {
+        return TYPE;
     }
     
     public OS getOs() {
@@ -47,7 +53,12 @@ public class ConsoleTarget extends AbstractTarget {
     public Arch getArch() {
         return arch;
     }
-    
+
+    @Override
+    public List<Arch> getDefaultArchs() {
+        return Collections.singletonList(Arch.getDefaultArch());
+    }
+
     @Override
     protected Launcher createLauncher(LaunchParameters launchParameters) throws IOException {
         File dir = config.isSkipInstall() ? config.getTmpDir() : config.getInstallDir();
