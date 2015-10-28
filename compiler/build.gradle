@@ -1,0 +1,24 @@
+
+description = 'RoboVM Compiler'
+dependencies {
+    compile group: 'commons-io', name: 'commons-io', version:'2.4'
+    compile group: 'org.apache.commons', name: 'commons-exec', version:'1.0.1'
+    compile group: 'org.apache.commons', name: 'commons-lang3', version:'3.3.2'
+    compile group: 'com.googlecode.plist', name: 'dd-plist', version:'1.16'
+    compile(group: 'org.simpleframework', name: 'simple-xml', version:'2.7') {
+exclude(module: 'stax-api')
+exclude(module: 'xpp3')
+exclude(module: 'stax')
+    }
+    compile group: 'org.bouncycastle', name: 'bcpkix-jdk15on', version:'1.49'
+    compile(group: 'com.googlecode.json-simple', name: 'json-simple', version:'1.1.1') {
+exclude(module: 'junit')
+    }
+    compile group: 'org.ow2.asm', name: 'asm-debug-all', version:'5.0.3'
+  compile project(':robovm-llvm')
+    compile group: 'org.robovm', name: 'robovm-libimobiledevice', version:'1.6.1-SNAPSHOT'
+    compile group: 'org.robovm', name: 'robovm-soot', version:'2.5.0-1'
+  testCompile project(':robovm-rt')
+    testCompile group: 'junit', name: 'junit', version:'4.12'
+    testCompile group: 'org.zeroturnaround', name: 'zt-zip', version:'1.7'
+}
