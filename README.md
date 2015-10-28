@@ -1,4 +1,3 @@
-# RoboVM
+# Aura
 
-Please see [robovm.com](http://www.robovm.com) for downloads, build and
-installation instructions and other documentation.
+Java Ahead Of Time (AOT) compiler based on RoboVM (http://www.robovm.com)
