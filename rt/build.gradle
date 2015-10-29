@@ -1,2 +1,34 @@
 
 description = 'RoboVM Runtime Library'
+
+
+
+apply plugin: 'java' // or 'groovy'. Must be explicitly applied
+apply plugin: 'com.github.johnrengelman.shadow'
+
+ buildscript {
+    repositories { jcenter() }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.2'
+    }
+ }
+
+ sourceSets {
+
+    main {
+        java.srcDirs =  ['robovm', 'external', 'libcore']
+
+
+        resources {
+            srcDir 'src/resources'
+        }
+    }
+
+    shadowJar {
+        relocate 'org.bouncycastle', 'com.android.org.bouncycastle'
+        relocate 'org.conscrypt', 'com.android.org.conscrypt'
+        relocate 'com.squareup', 'com.android.com.squareup'
+    }
+
+
+}
