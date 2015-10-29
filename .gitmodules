@@ -3,4 +3,4 @@
 	url = git://github.com/robovm/drlvm-vts-bundle.git
 [submodule "soot"]
 	path = soot
-	url = https://github.com/robovm/soot
+	url = https://github.com/ashleyj/soot
