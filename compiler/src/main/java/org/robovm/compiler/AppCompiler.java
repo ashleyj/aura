@@ -63,11 +63,6 @@ import org.robovm.compiler.plugin.PluginArgument;
 import org.robovm.compiler.plugin.TargetPlugin;
 import org.robovm.compiler.target.ConsoleTarget;
 import org.robovm.compiler.target.LaunchParameters;
-import org.robovm.compiler.target.ios.DeviceType;
-import org.robovm.compiler.target.ios.IOSSimulatorLaunchParameters;
-import org.robovm.compiler.target.ios.IOSTarget;
-import org.robovm.compiler.target.ios.ProvisioningProfile;
-import org.robovm.compiler.target.ios.SigningIdentity;
 import org.robovm.compiler.util.AntPathMatcher;
 
 /**
@@ -627,10 +622,6 @@ public class AppCompiler {
                     builder.iosEntitlementsPList(new File(args[++i]));
                 } else if ("-resourcerules".equals(args[i])) {
                     builder.iosResourceRulesPList(new File(args[++i]));
-                } else if ("-signidentity".equals(args[i])) {
-                    builder.iosSignIdentity(SigningIdentity.find(SigningIdentity.list(), args[++i]));
-                } else if ("-provisioningprofile".equals(args[i])) {
-                    builder.iosProvisioningProfile(ProvisioningProfile.find(ProvisioningProfile.list(), args[++i]));
                 } else if ("-sdk".equals(args[i])) {
                     builder.iosSdkVersion(args[++i]);
                 } else if ("-printdevicetypes".equals(args[i])) {
@@ -724,19 +715,6 @@ public class AppCompiler {
                 if (run) {
                     compiler.compile(); // Just compile the first slice if multiple archs have been specified
                     LaunchParameters launchParameters = compiler.config.getTarget().createLaunchParameters();
-                    if (launchParameters instanceof IOSSimulatorLaunchParameters) {
-                        IOSSimulatorLaunchParameters simParams = (IOSSimulatorLaunchParameters) launchParameters;
-                        String deviceName = null;
-                        String sdkVersion = null;
-                        if (compiler.config.getIosDeviceType() != null) {
-                            String[] parts = compiler.config.getIosDeviceType().split("[:;, ]+");
-                            deviceName = parts[0].trim();
-                            sdkVersion = parts.length > 1 ? parts[1].trim() : null;
-                        }
-                        DeviceType type = DeviceType.getBestDeviceType(
-                                compiler.config.getArch(), null, deviceName, sdkVersion);
-                        simParams.setDeviceType(type);
-                    }
                     launchParameters.setArguments(runArgs);
                     compiler.launch(launchParameters);
                 } else {
@@ -846,10 +824,6 @@ public class AppCompiler {
     }
 
     private static void printDeviceTypesAndExit() throws IOException {
-        List<DeviceType> types = DeviceType.listDeviceTypes();
-        for (DeviceType type : types) {
-            System.out.println(type.getSimpleDeviceTypeId());
-        }
         System.exit(0);
     }
 
@@ -864,7 +838,6 @@ public class AppCompiler {
         }
         List<String> targets = new ArrayList<>();
         targets.add(ConsoleTarget.TYPE);
-        targets.add(IOSTarget.TYPE);
         for (Plugin plugin : plugins) {
             if (plugin instanceof TargetPlugin) {
                 targets.add(((TargetPlugin) plugin).getTarget().getType());

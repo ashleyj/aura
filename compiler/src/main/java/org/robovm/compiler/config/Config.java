@@ -16,43 +16,9 @@
  */
 package org.robovm.compiler.config;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Reader;
-import java.io.Writer;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.ServiceLoader;
-import java.util.TreeMap;
-import java.util.jar.Attributes;
-import java.util.jar.JarFile;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.robovm.compiler.DependencyGraph;
-import org.robovm.compiler.ITable;
-import org.robovm.compiler.MarshalerLookup;
-import org.robovm.compiler.VTable;
-import org.robovm.compiler.Version;
+import org.robovm.compiler.*;
 import org.robovm.compiler.clazz.Clazz;
 import org.robovm.compiler.clazz.Clazzes;
 import org.robovm.compiler.clazz.Path;
@@ -60,11 +26,7 @@ import org.robovm.compiler.config.OS.Family;
 import org.robovm.compiler.config.tools.Tools;
 import org.robovm.compiler.llvm.DataLayout;
 import org.robovm.compiler.log.Logger;
-import org.robovm.compiler.plugin.CompilerPlugin;
-import org.robovm.compiler.plugin.LaunchPlugin;
-import org.robovm.compiler.plugin.Plugin;
-import org.robovm.compiler.plugin.PluginArgument;
-import org.robovm.compiler.plugin.TargetPlugin;
+import org.robovm.compiler.plugin.*;
 import org.robovm.compiler.plugin.annotation.AnnotationImplPlugin;
 import org.robovm.compiler.plugin.lambda.LambdaPlugin;
 import org.robovm.compiler.plugin.objc.InterfaceBuilderClassesPlugin;
@@ -73,9 +35,6 @@ import org.robovm.compiler.plugin.objc.ObjCMemberPlugin;
 import org.robovm.compiler.plugin.objc.ObjCProtocolProxyPlugin;
 import org.robovm.compiler.target.ConsoleTarget;
 import org.robovm.compiler.target.Target;
-import org.robovm.compiler.target.ios.IOSTarget;
-import org.robovm.compiler.target.ios.ProvisioningProfile;
-import org.robovm.compiler.target.ios.SigningIdentity;
 import org.robovm.compiler.util.DigestUtil;
 import org.robovm.compiler.util.InfoPList;
 import org.robovm.compiler.util.io.RamDiskTools;
@@ -91,6 +50,16 @@ import org.simpleframework.xml.filter.PlatformFilter;
 import org.simpleframework.xml.stream.Format;
 import org.simpleframework.xml.stream.InputNode;
 import org.simpleframework.xml.stream.OutputNode;
+
+import java.io.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.*;
+import java.util.jar.Attributes;
+import java.util.jar.JarFile;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 /**
  * Holds compiler configuration.
@@ -177,8 +146,6 @@ public class Config {
     @Element(required = false)
     private Tools tools;
 
-    private SigningIdentity iosSignIdentity;
-    private ProvisioningProfile iosProvisioningProfile;
     private String iosDeviceType;
     private InfoPList infoPList;
 
@@ -529,13 +496,6 @@ public class Config {
         return iosEntitlementsPList;
     }
 
-    public SigningIdentity getIosSignIdentity() {
-        return iosSignIdentity;
-    }
-
-    public ProvisioningProfile getIosProvisioningProfile() {
-        return iosProvisioningProfile;
-    }
 
     public boolean isIosSkipSigning() {
         return iosSkipSigning;
@@ -849,8 +809,6 @@ public class Config {
         if (targetType != null) {
             if (ConsoleTarget.TYPE.equals(targetType)) {
                 target = new ConsoleTarget();
-            } else if (IOSTarget.TYPE.equals(targetType)) {
-                target = new IOSTarget();
             } else {
                 for (TargetPlugin plugin : getTargetPlugins()) {
                     if (plugin.getTarget().getType().equals(targetType)) {
@@ -863,12 +821,7 @@ public class Config {
                 }
             }
         } else {
-            // Auto
-            if (os == OS.ios) {
-                target = new IOSTarget();
-            } else {
-                target = new ConsoleTarget();
-            }
+            target = new ConsoleTarget();
         }
 
         if (!getArchs().isEmpty()) {
@@ -1434,16 +1387,6 @@ public class Config {
 
         public Builder iosResourceRulesPList(File resourceRulesPList) {
             config.iosResourceRulesPList = resourceRulesPList;
-            return this;
-        }
-
-        public Builder iosSignIdentity(SigningIdentity signIdentity) {
-            config.iosSignIdentity = signIdentity;
-            return this;
-        }
-
-        public Builder iosProvisioningProfile(ProvisioningProfile iosProvisioningProfile) {
-            config.iosProvisioningProfile = iosProvisioningProfile;
             return this;
         }
 

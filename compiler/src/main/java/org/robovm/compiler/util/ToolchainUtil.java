@@ -16,11 +16,6 @@
  */
 package org.robovm.compiler.util;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -30,7 +25,11 @@ import org.robovm.compiler.config.OS;
 import org.robovm.compiler.config.tools.TextureAtlas;
 import org.robovm.compiler.log.ConsoleLogger;
 import org.robovm.compiler.log.Logger;
-import org.robovm.compiler.target.ios.IOSTarget;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author niklas
@@ -230,11 +229,6 @@ public class ToolchainUtil {
         }
 
         opts.add("--platform");
-        if (IOSTarget.isDeviceArch(config.getArch())) {
-            opts.add("iphoneos");
-        } else if (IOSTarget.isSimulatorArch(config.getArch())) {
-            opts.add("iphonesimulator");
-        }
 
         String minOSVersion = config.getOs().getMinVersion();
         if (config.getIosInfoPList() != null) {
