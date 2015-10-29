@@ -4,6 +4,7 @@ include ':robovm-compiler'
 include ':robovm-rt'
 include ':robovm-cacerts-parent:robovm-cacerts-full'
 include ':robovm-cacerts-parent'
+include ':soot'
 
 project(':robovm-llvm').projectDir = "$rootDir/llvm" as File
 project(':robovm-compiler').projectDir = "$rootDir/compiler" as File

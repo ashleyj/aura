@@ -1,3 +1,6 @@
 [submodule "tests/drlvm/drlvm-vts-bundle"]
 	path = tests/drlvm/drlvm-vts-bundle
 	url = git://github.com/robovm/drlvm-vts-bundle.git
+[submodule "soot"]
+	path = soot
+	url = https://github.com/robovm/soot
