@@ -1,6 +1,8 @@
+apply plugin: 'java'
 
 description = 'RoboVM Compiler'
  dependencies {
+
     compile group: 'commons-io', name: 'commons-io', version:'2.4'
     compile group: 'org.apache.commons', name: 'commons-exec', version:'1.0.1'
     compile group: 'org.apache.commons', name: 'commons-lang3', version:'3.3.2'
@@ -28,3 +30,8 @@ description = 'RoboVM Compiler'
     include "**/test"
 }
 
+ jar {
+    manifest {
+        attributes 'Main-Class': 'org.robovm.compiler.AppCompiler'
+    }
+}

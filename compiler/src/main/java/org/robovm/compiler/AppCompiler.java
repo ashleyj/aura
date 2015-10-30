@@ -838,11 +838,7 @@ public class AppCompiler {
         }
         List<String> targets = new ArrayList<>();
         targets.add(ConsoleTarget.TYPE);
-        for (Plugin plugin : plugins) {
-            if (plugin instanceof TargetPlugin) {
-                targets.add(((TargetPlugin) plugin).getTarget().getType());
-            }
-        }
+
         // @formatter:off 
         System.err.println("Usage: robovm [-options] class [run-args]");
         System.err.println("   or  robovm [-options] -jar jarfile [run-args]");
@@ -995,6 +991,9 @@ public class AppCompiler {
         
         if(plugins != null) {
             for(Plugin plugin: plugins) {
+                if (plugin instanceof TargetPlugin) {
+                    targets.add(((TargetPlugin) plugin).getTarget().getType());
+                }
                 if(plugin.getArguments().getArguments().size() > 0) {
                     System.err.println(plugin.getClass().getSimpleName() + " options:");
                     for(PluginArgument arg: plugin.getArguments().getArguments()) {
