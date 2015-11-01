@@ -4,9 +4,3 @@
 [submodule "soot"]
 	path = soot
 	url = https://github.com/ashleyj/soot
-[submodule "vm/bdwgc"]
-	path = vm/bdwgc
-	url = git://github.com/robovm/bdwgc.git
-[submodule "vm/libatomic_ops"]
-	path = vm/libatomic_ops
-	url = git://github.com/ivmai/libatomic_ops.git
