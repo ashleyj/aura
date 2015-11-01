@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
-BASE=$(cd $(dirname $0); pwd -P)
+BASE=$(dirname $0)
 
 mkdir -p "$BASE/binaries"
 rsync -av --exclude '*-dbg.a' --include '*.a' --include '*/' --exclude '**' "$BASE/target/binaries/" "$BASE/binaries/"

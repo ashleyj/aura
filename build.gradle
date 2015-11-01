@@ -2,8 +2,10 @@ allprojects  {
   apply plugin: 'maven'
 
   group = 'org.robovm'
-version = '1.6.1-SNAPSHOT'
+  version = '1.6.1-SNAPSHOT'
 }
+
+apply plugin: 'distribution'
 
 subprojects {
   apply plugin: 'java'
@@ -17,9 +19,63 @@ subprojects {
     maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
     maven { url "http://repo.maven.apache.org/maven2" }
   }
+}
 
-  configurations.all {
+task buildLib(type:Exec) {
+  commandLine 'vm/build.sh'
+  description "Build VM libraries"
+
+  println "Building Virtual Machine Libraries"
+
+  doLast {
+    tasks.copyBinaries.execute()
+  }
 }
-  
-  
+
+task copyBinaries(type:Exec) {
+  println "Copying libraries"
+  commandLine 'vm/copy-binaries.sh'
 }
+
+
+task distTargz( type: Tar ) {
+
+    baseName = "aura-dist"
+    into("${baseName}/lib") {
+        from  "compiler/target/robovm-compiler-${version}.jar" rename { String fileName -> fileName.replace("robovm-compiler-${version}.jar", "robovm-compiler.jar") }
+        from("rt/target/robovm-rt-${version}.jar") rename { String fileName -> fileName.replace("robovm-rt-${version}.jar", "robovm-rt.jar") }
+        from("cacerts/full/build/libs/robovm-cacerts-full-${version}.jar") rename { String fileName -> fileName.replace("robovm-cacerts-full-${version}.jar", "robovm-cacerts-full.jar") }
+    }
+    into("${baseName}/src") {
+        from("rt/target/robovm-rt-${version}-sources.jar") rename { String fileName -> fileName.replace("robovm-rt-${version}-sources.jar", "robovm-rt-sources.jar") }
+    }
+    into ("${baseName}/vm") {
+        from ("vm/binaries")
+    }
+
+    into ("${baseName}/bin") {
+        from ("bin")
+    }
+
+
+    //LICENSE INFORMATION
+    into ("${baseName}/license/rt") {
+        from ("rt/NOTICE.txt")
+        from ("rt/LICENSE.txt")
+    }
+
+    into ("${baseName}/license/compiler") {
+        from ("compiler/NOTICE.txt")
+        from ("compiler/LICENSE.txt")
+    }
+
+    into ("${baseName}/license/vm") {
+        from ("vm/NOTICE.txt")
+        from ("vm/LICENSE.txt")
+    }
+
+    extension = 'tar.gz'
+    compression = Compression.GZIP
+}
+
+
