@@ -16,14 +16,6 @@
  */
 package org.robovm.compiler.config;
 
-import static org.junit.Assert.*;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.StringWriter;
-import java.util.Arrays;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.After;
@@ -33,8 +25,15 @@ import org.robovm.compiler.config.Config.Builder;
 import org.robovm.compiler.config.Config.Home;
 import org.robovm.compiler.config.Config.Lib;
 import org.robovm.compiler.target.ConsoleTarget;
-import org.robovm.compiler.target.ios.IOSTarget;
 import org.zeroturnaround.zip.ZipUtil;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.StringWriter;
+import java.util.Arrays;
+
+import static org.junit.Assert.*;
 
 /**
  * Tests {@link Config}.
@@ -141,29 +140,8 @@ public class ConfigTest {
         assertEquals(IOUtils.toString(getClass().getResourceAsStream("ConfigTest.console.xml")), out.toString());
     }
 
-    @Test
-    public void testReadIOS() throws Exception {
-        Config.Builder builder = new Config.Builder();
-        builder.read(new InputStreamReader(getClass().getResourceAsStream("ConfigTest.ios.xml"), "utf-8"), wd);
-        Config config = builder.config;
-        assertEquals("6.1", config.getIosSdkVersion());
-        assertEquals(new File(wd, "Info.plist"), config.getIosInfoPList().getFile());
-        assertEquals(new File(wd, "entitlements.plist"), config.getIosEntitlementsPList());        
-    }
     
-    @Test
-    public void testWriteIOS() throws Exception {
-        Config.Builder builder = new Config.Builder();
-        builder.iosSdkVersion("6.1");
-        builder.iosInfoPList(new File("Info.plist"));
-        builder.iosEntitlementsPList(new File("entitlements.plist"));        
-        builder.targetType(IOSTarget.TYPE);
-        
-        StringWriter out = new StringWriter();
-        builder.write(out, wd);
-        assertEquals(IOUtils.toString(getClass().getResourceAsStream("ConfigTest.ios.xml")), out.toString());
-    }
-    
+
     private File createMergeConfig(File tmpDir, String dir, String id, OS os, Arch arch, boolean jar) throws Exception {
         File p = new File(tmpDir, dir);
         for (OS os2 : OS.values()) {

@@ -618,10 +618,6 @@ public class AppCompiler {
                     builder.cacerts(cacerts);
                 } else if ("-plist".equals(args[i])) {
                     builder.infoPList(new File(args[++i]));
-                } else if ("-entitlements".equals(args[i])) {
-                    builder.iosEntitlementsPList(new File(args[++i]));
-                } else if ("-resourcerules".equals(args[i])) {
-                    builder.iosResourceRulesPList(new File(args[++i]));
                 } else if ("-sdk".equals(args[i])) {
                     builder.iosSdkVersion(args[++i]);
                 } else if ("-printdevicetypes".equals(args[i])) {
