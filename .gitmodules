@@ -4,6 +4,7 @@
 [submodule "soot"]
 	path = soot
 	url = https://github.com/ashleyj/soot
+	ignore = dirty
 [submodule "vm/libatomic_ops"]
 	path = vm/libatomic_ops
 	url = https://github.com/ivmai/libatomic_ops.git

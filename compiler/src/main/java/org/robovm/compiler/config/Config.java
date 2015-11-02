@@ -16,6 +16,36 @@
  */
 package org.robovm.compiler.config;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
+import java.io.Writer;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.ServiceLoader;
+import java.util.TreeMap;
+import java.util.jar.Attributes;
+import java.util.jar.JarFile;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.robovm.compiler.*;
@@ -90,8 +120,6 @@ public class Config {
     @Element(required = false)
     private String imageName = null;
     @Element(required = false)
-    private Boolean useDynamicJni = null;
-    @Element(required = false)
     private Boolean skipRuntimeLib = null;
     @Element(required = false)
     private File mainJar;
@@ -139,7 +167,6 @@ public class Config {
     @Element(required = false, name = "infoPList")
     private File infoPListFile = null;
     @Element(required = false)
-    private File iosResourceRulesPList;
     @Element(required = false)
     private File iosEntitlementsPList;
 
@@ -291,10 +318,6 @@ public class Config {
 
     public boolean isSkipInstall() {
         return skipInstall;
-    }
-
-    public boolean isUseDynamicJni() {
-        return useDynamicJni != null && useDynamicJni.booleanValue();
     }
 
     public int getThreads() {
@@ -486,10 +509,6 @@ public class Config {
             infoPList = new InfoPList(infoPListFile);
         }
         return infoPList;
-    }
-
-    public File getIosResourceRulesPList() {
-        return iosResourceRulesPList;
     }
 
     public File getIosEntitlementsPList() {
@@ -1164,11 +1183,6 @@ public class Config {
 
         public Builder skipInstall(boolean b) {
             config.skipInstall = b;
-            return this;
-        }
-
-        public Builder useDynamicJni(boolean b) {
-            config.useDynamicJni = b;
             return this;
         }
 
