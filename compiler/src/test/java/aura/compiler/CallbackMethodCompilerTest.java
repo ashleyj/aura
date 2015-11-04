@@ -16,14 +16,14 @@
  */
 package aura.compiler;
 
-import static org.junit.Assert.*;
-
-import aura.compiler.CallbackMethodCompiler;
-import org.junit.Test;
 import aura.compiler.llvm.ArrayType;
 import aura.compiler.llvm.FunctionType;
 import aura.compiler.llvm.PointerType;
 import aura.compiler.llvm.StructureType;
+import org.junit.Test;
+
+import static aura.compiler.llvm.Type.*;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Tests {@link CallbackMethodCompiler}.

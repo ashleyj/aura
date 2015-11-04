@@ -16,11 +16,6 @@
  */
 package aura.compiler;
 
-import static org.junit.Assert.*;
-import static aura.compiler.Types.*;
-
-import org.junit.Before;
-import org.junit.Test;
 import aura.compiler.config.Arch;
 import aura.compiler.config.OS;
 import aura.compiler.llvm.FunctionType;
@@ -29,10 +24,15 @@ import aura.llvm.Context;
 import aura.llvm.Module;
 import aura.llvm.Target;
 import aura.llvm.TargetMachine;
-
+import org.junit.Before;
+import org.junit.Test;
 import soot.Scene;
 import soot.SootClass;
 import soot.options.Options;
+
+import static aura.compiler.Types.*;
+import static aura.compiler.llvm.Type.VOID;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Tests {@link Types}.

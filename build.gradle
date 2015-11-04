@@ -38,46 +38,43 @@ task copyBinaries(type:Exec) {
 }
 
 
-task distTargz( type: Tar ) {
+task distTargz( type: Tar) {
+	baseName = "aura-dist"
 
-    baseName = "aura-dist"
-    into("${baseName}/lib") {
-        from  "compiler/build/libs/aura-compiler-${version}.jar" rename { String fileName -> fileName.replace("aura-compiler-${version}.jar", "aura-compiler.jar") }
-        from("rt/build/libs/aura-rt-${version}.jar") rename { String fileName -> fileName.replace("robovm-rt-${version}.jar", "robovm-rt.jar") }
-        from("cacerts/full/build/libs/cacerts-full-${version}.jar") rename { String fileName -> fileName.replace("cacerts-full-${version}.jar", "cacerts-full.jar") }
-    }
-    into("${baseName}/src") {
-        from("rt/build/libs/aura-rt-${version}-source.jar") rename { String fileName -> fileName.replace("aura-rt-${version}-source.jar", "aura-rt-sources.jar") }
-    }
-    into ("${baseName}/vm") {
-        from ("vm/binaries")
-    }
+	into("${baseName}/lib") {
+		from  "compiler/build/libs/aura-compiler-${version}.jar" rename { String fileName -> fileName.replace("aura-compiler-${version}.jar", "aura-compiler.jar") }
+		from("rt/build/libs/aura-rt-${version}.jar") rename { String fileName -> fileName.replace("robovm-rt-${version}.jar", "robovm-rt.jar") }
+		from("cacerts/full/build/libs/cacerts-full-${version}.jar") rename { String fileName -> fileName.replace("cacerts-full-${version}.jar", "cacerts-full.jar") }
+	}
 
-    into ("${baseName}/bin") {
-        from ("bin")
-    }
+	into("${baseName}/src") {
+		from("rt/build/libs/aura-rt-${version}-source.jar") rename { String fileName -> fileName.replace("aura-rt-${version}-source.jar", "aura-rt-sources.jar") }
+	}
 
+	into ("${baseName}/vm") {
+		from ("vm/binaries")
+	}
 
-    //LICENSE INFORMATION
-    into ("${baseName}/license/rt") {
-        from ("rt/NOTICE.txt")
-        from ("rt/LICENSE.txt")
-    }
+	into ("${baseName}/bin") {
+		from ("bin")
+	}
 
-    into ("${baseName}/license/compiler") {
-        from ("compiler/NOTICE.txt")
-        from ("compiler/LICENSE.txt")
-    }
+	//LICENSE INFORMATION
+	into ("${baseName}/license/rt") {
+	from ("rt/NOTICE.txt")
+	from ("rt/LICENSE.txt")
+	}
 
-    into ("${baseName}/license/vm") {
-        from ("vm/NOTICE.txt")
-        from ("vm/LICENSE.txt")
-    }
+	into ("${baseName}/license/compiler") {
+		from ("compiler/NOTICE.txt")
+		from ("compiler/LICENSE.txt")
+	}
 
-    extension = 'tar.gz'
-    compression = Compression.GZIP
+	into ("${baseName}/license/vm") {
+		from ("vm/NOTICE.txt")
+		from ("vm/LICENSE.txt")
+	}
+
+	extension = 'tar.gz'
+	compression = Compression.GZIP
 }
-
-distTargz.dependsOn(build)
-distTargz.dependsOn.add("jar")
-

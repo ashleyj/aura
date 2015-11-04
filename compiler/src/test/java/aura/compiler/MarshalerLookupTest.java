@@ -16,37 +16,29 @@
  */
 package aura.compiler;
 
-import static org.junit.Assert.*;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.List;
-
-import org.junit.BeforeClass;
-import org.junit.Test;
 import aura.compiler.MarshalerLookup.MarshalSite;
 import aura.compiler.MarshalerLookup.Marshaler;
 import aura.compiler.clazz.Clazz;
 import aura.compiler.config.Config;
 import aura.compiler.config.Config.Home;
 import aura.compiler.log.Logger;
-import src.main.java.aura.rt.bro.ArrayMarshalers;
-import src.main.java.aura.rt.bro.MarshalerFlags;
-import src.main.java.aura.rt.bro.Struct;
-import src.main.java.aura.rt.bro.annotation.Array;
-import src.main.java.aura.rt.bro.annotation.Bridge;
-import src.main.java.aura.rt.bro.annotation.Callback;
-import src.main.java.aura.rt.bro.annotation.Marshalers;
-import src.main.java.aura.rt.bro.annotation.MarshalsArray;
-import src.main.java.aura.rt.bro.annotation.MarshalsPointer;
-import src.main.java.aura.rt.bro.annotation.MarshalsValue;
-import src.main.java.aura.rt.bro.annotation.StructMember;
-
+import aura.rt.bro.ArrayMarshalers;
+import aura.rt.bro.MarshalerFlags;
+import aura.rt.bro.Struct;
+import aura.rt.bro.annotation.*;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import soot.Scene;
 import soot.SootClass;
 import soot.SootMethod;
 import soot.options.Options;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.List;
+
+import static org.junit.Assert.*;
 
 /**
  * Tests {@link MarshalerLookup}.

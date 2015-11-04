@@ -16,28 +16,24 @@
  */
 package aura.compiler.plugin.annotation;
 
-import static org.junit.Assert.*;
-
-import java.io.File;
-import java.io.IOException;
-import java.lang.annotation.Annotation;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-import java.lang.reflect.Field;
-import java.nio.file.Files;
-import java.util.Arrays;
-
-import aura.compiler.config.FakeHome;
-import org.junit.BeforeClass;
-import org.junit.Test;
 import aura.compiler.ModuleBuilder;
 import aura.compiler.clazz.Clazz;
 import aura.compiler.clazz.Dependency;
 import aura.compiler.config.Config;
 import aura.compiler.config.Config.Builder;
-import src.main.java.aura.rt.bro.annotation.Bridge;
+import aura.compiler.config.FakeHome;
+import aura.rt.bro.annotation.Bridge;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.lang.annotation.*;
+import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.util.Arrays;
+
+import static org.junit.Assert.*;
 
 /**
  * Tests {@link AnnotationImplPlugin}.

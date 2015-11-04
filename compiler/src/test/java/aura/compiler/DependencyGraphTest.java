@@ -29,8 +29,8 @@ import aura.compiler.clazz.Clazz;
 import aura.compiler.config.Config;
 import aura.compiler.config.FakeHome;
 import aura.compiler.config.Config.TreeShakerMode;
-import src.main.java.aura.rt.annotation.StronglyLinked;
-import src.main.java.aura.rt.annotation.WeaklyLinked;
+import aura.rt.annotation.StronglyLinked;
+import aura.rt.annotation.WeaklyLinked;
 
 import soot.Scene;
 import soot.options.Options;
