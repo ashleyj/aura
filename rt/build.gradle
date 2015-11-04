@@ -1,5 +1,5 @@
 
-description = 'RoboVM Runtime Library'
+description = 'Aura Runtime Library'
 
 
 
@@ -16,12 +16,25 @@ apply plugin: 'com.github.johnrengelman.shadow'
  sourceSets {
 
     main {
-        java.srcDirs =  ['robovm', 'external', 'libcore']
+        java.srcDir 'aura/src/main/java'
+        java.srcDir 'aura/src/filtered-java'
+        java.srcDir 'libcore/crypto/src/main/java'
+        java.srcDir 'libcore/dalvik/src/main/java'
+        java.srcDir 'libcore/json/src/main/java'
+        java.srcDir 'libcore/libdvm/src/main/java'
+        java.srcDir 'libcore/luni/src/main/java/javax'
+        java.srcDir 'libcore/luni/src/main/java'
+        java.srcDir 'libcore/luni/src/main/java/org'
+        java.srcDir 'libcore/xml/src/main/java'
+        java.srcDir 'external/apache-http/src'
+        java.srcDir 'external/apache-xml/src/main/java'
+        java.srcDir 'external/bouncycastle/bcpkix/src/main/java'
+        java.srcDir 'external/bouncycastle/bcprov/src/main/java'
+        java.srcDir 'external/javasqlite/src/main/java'
+        java.srcDir 'external/okhttp/src/main/java'
+        java.srcDir 'external/okhttp/android/main/java'
 
 
-        resources {
-            srcDir 'src/resources'
-        }
     }
 
     shadowJar {
@@ -30,5 +43,13 @@ apply plugin: 'com.github.johnrengelman.shadow'
         relocate 'com.squareup', 'com.android.com.squareup'
     }
 
-
 }
+
+
+task jarSources(type:Jar){
+    from sourceSets.main.getAllSource()
+    classifier = 'source'
+}
+
+jar.dependsOn jarSources
+

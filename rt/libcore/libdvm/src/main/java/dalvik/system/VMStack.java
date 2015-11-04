@@ -16,9 +16,9 @@
 
 package dalvik.system;
 
-import java.util.Arrays;
+import aura.rt.VM;
 
-import org.robovm.rt.VM;
+import java.util.Arrays;
 
 /**
  * Provides a limited interface to the Dalvik VM stack. This class is mostly

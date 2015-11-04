@@ -1,8 +1,8 @@
 allprojects  {
-  apply plugin: 'maven'
+  apply plugin: 'java'
 
-  group = 'org.robovm'
-  version = '1.6.1-SNAPSHOT'
+  group = 'aura'
+  version = '1.0-SNAPSHOT'
 }
 
 apply plugin: 'distribution'
@@ -42,12 +42,12 @@ task distTargz( type: Tar ) {
 
     baseName = "aura-dist"
     into("${baseName}/lib") {
-        from  "compiler/target/robovm-compiler-${version}.jar" rename { String fileName -> fileName.replace("robovm-compiler-${version}.jar", "robovm-compiler.jar") }
-        from("rt/target/robovm-rt-${version}.jar") rename { String fileName -> fileName.replace("robovm-rt-${version}.jar", "robovm-rt.jar") }
-        from("cacerts/full/build/libs/robovm-cacerts-full-${version}.jar") rename { String fileName -> fileName.replace("robovm-cacerts-full-${version}.jar", "robovm-cacerts-full.jar") }
+        from  "compiler/build/libs/aura-compiler-${version}.jar" rename { String fileName -> fileName.replace("aura-compiler-${version}.jar", "aura-compiler.jar") }
+        from("rt/build/libs/aura-rt-${version}.jar") rename { String fileName -> fileName.replace("robovm-rt-${version}.jar", "robovm-rt.jar") }
+        from("cacerts/full/build/libs/cacerts-full-${version}.jar") rename { String fileName -> fileName.replace("cacerts-full-${version}.jar", "cacerts-full.jar") }
     }
     into("${baseName}/src") {
-        from("rt/target/robovm-rt-${version}-sources.jar") rename { String fileName -> fileName.replace("robovm-rt-${version}-sources.jar", "robovm-rt-sources.jar") }
+        from("rt/build/libs/aura-rt-${version}-source.jar") rename { String fileName -> fileName.replace("aura-rt-${version}-source.jar", "aura-rt-sources.jar") }
     }
     into ("${baseName}/vm") {
         from ("vm/binaries")
@@ -78,4 +78,6 @@ task distTargz( type: Tar ) {
     compression = Compression.GZIP
 }
 
+distTargz.dependsOn(build)
+distTargz.dependsOn.add("jar")
 

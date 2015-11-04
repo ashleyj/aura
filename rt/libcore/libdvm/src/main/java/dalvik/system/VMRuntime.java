@@ -16,11 +16,10 @@
 
 package dalvik.system;
 
-import java.lang.reflect.Array;
-
+import aura.rt.VM;
 import libcore.util.EmptyArray;
 
-import org.robovm.rt.VM;
+import java.lang.reflect.Array;
 
 /**
  * Provides an interface to VM-global, Dalvik-specific features.

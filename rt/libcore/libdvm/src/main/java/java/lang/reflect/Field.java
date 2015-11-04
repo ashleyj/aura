@@ -53,7 +53,7 @@ import java.util.Comparator;
 import libcore.reflect.GenericSignatureParser;
 import libcore.reflect.Types;
 
-import org.robovm.rt.VM;
+import aura.rt.VM;
 
 /**
  * This class represents a field. Information about the field can be accessed,

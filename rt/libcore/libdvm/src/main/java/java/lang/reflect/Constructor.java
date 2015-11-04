@@ -55,7 +55,7 @@ import libcore.reflect.GenericSignatureParser;
 import libcore.reflect.ListOfTypes;
 import libcore.reflect.Types;
 
-import org.robovm.rt.VM;
+import aura.rt.VM;
 
 /**
  * This class represents a constructor. Information about the constructor can be

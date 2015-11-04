@@ -1,13 +1,13 @@
-rootProject.name = 'robovm-parent'
-include ':robovm-llvm'
-include ':robovm-compiler'
-include ':robovm-rt'
-include ':robovm-cacerts-parent:robovm-cacerts-full'
-include ':robovm-cacerts-parent'
+rootProject.name = 'aura-parent'
+include ':llvm'
+include ':aura-compiler'
+include ':aura-rt'
+include ':cacerts-parent:cacerts-full'
+include ':cacerts-parent'
 include ':soot'
 
-project(':robovm-llvm').projectDir = "$rootDir/llvm" as File
-project(':robovm-compiler').projectDir = "$rootDir/compiler" as File
-project(':robovm-rt').projectDir = "$rootDir/rt" as File
-project(':robovm-cacerts-parent:robovm-cacerts-full').projectDir = "$rootDir/cacerts/full" as File
-project(':robovm-cacerts-parent').projectDir = "$rootDir/cacerts" as File
+project(':llvm').projectDir = "$rootDir/llvm" as File
+project(':aura-compiler').projectDir = "$rootDir/compiler" as File
+project(':aura-rt').projectDir = "$rootDir/rt" as File
+project(':cacerts-parent:cacerts-full').projectDir = "$rootDir/cacerts/full" as File
+project(':cacerts-parent').projectDir = "$rootDir/cacerts" as File
