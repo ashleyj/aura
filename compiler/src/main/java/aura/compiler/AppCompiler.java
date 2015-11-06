@@ -185,7 +185,7 @@ public class AppCompiler {
         "libcore/io/StructUtsname",
         "libcore/util/MutableInt",
         "libcore/util/MutableLong",
-        "org/robovm/rt/bro/Struct"
+        "aura/rt/bro/Struct"
     };
 
     private static final String TRUSTED_CERTIFICATE_STORE_CLASS =

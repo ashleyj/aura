@@ -16,22 +16,22 @@
  */
 package aura.compiler;
 
+import org.apache.commons.io.IOUtils;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-import org.apache.commons.io.IOUtils;
-
 /**
- * Reads the compiler version from auto generated <code>version.properties</code> file.
+ * Reads the compiler version from auto generated <code>aura_version</code> file.
  */
 public class Version {
 
     private static String version = null;
-    private static String PROPERTIES_RESOURCE = "/META-INF/robovm/version.properties";
+    private static String PROPERTIES_RESOURCE = "/aura_version";
 
     /**
-     * Returns the version number of the compiler by reading the <code>version.properties</code>
+     * Returns the version number of the compiler by reading the <code>aura_version</code>
      * file.
      * 
      * @return the version.

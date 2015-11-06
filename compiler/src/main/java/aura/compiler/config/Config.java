@@ -17,28 +17,23 @@
 package aura.compiler.config;
 
 import aura.compiler.*;
-import aura.compiler.config.tools.Tools;
-import aura.compiler.plugin.*;
-import aura.compiler.plugin.annotation.AnnotationImplPlugin;
-import aura.compiler.plugin.objc.InterfaceBuilderClassesPlugin;
-import aura.compiler.target.ConsoleTarget;
-import aura.compiler.*;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import aura.compiler.clazz.Clazz;
 import aura.compiler.clazz.Clazzes;
 import aura.compiler.clazz.Path;
 import aura.compiler.config.OS.Family;
+import aura.compiler.config.tools.Tools;
 import aura.compiler.llvm.DataLayout;
 import aura.compiler.log.Logger;
+import aura.compiler.plugin.*;
+import aura.compiler.plugin.annotation.AnnotationImplPlugin;
 import aura.compiler.plugin.lambda.LambdaPlugin;
-import aura.compiler.plugin.objc.ObjCBlockPlugin;
-import aura.compiler.plugin.objc.ObjCMemberPlugin;
-import aura.compiler.plugin.objc.ObjCProtocolProxyPlugin;
+import aura.compiler.target.ConsoleTarget;
 import aura.compiler.target.Target;
 import aura.compiler.util.DigestUtil;
 import aura.compiler.util.InfoPList;
 import aura.compiler.util.io.RamDiskTools;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.simpleframework.xml.Element;
 import org.simpleframework.xml.ElementList;
 import org.simpleframework.xml.Root;
@@ -188,10 +183,6 @@ public class Config {
     protected Config() throws IOException {
         // Add standard plugins
         this.plugins.addAll(0, Arrays.asList(
-                new InterfaceBuilderClassesPlugin(),
-                new ObjCProtocolProxyPlugin(),
-                new ObjCMemberPlugin(),
-                new ObjCBlockPlugin(),
                 new AnnotationImplPlugin(),
                 new LambdaPlugin()
                 ));
@@ -614,7 +605,7 @@ public class Config {
                     Enumeration<? extends ZipEntry> entries = zipFile.entries();
                     while (entries.hasMoreElements()) {
                         ZipEntry entry = entries.nextElement();
-                        if (entry.getName().startsWith("META-INF/robovm/") && !entry.isDirectory()) {
+                        if (entry.getName().startsWith("META-INF/aura/") && !entry.isDirectory()) {
                             File f = new File(target, entry.getName());
                             f.getParentFile().mkdirs();
                             try (InputStream in = zipFile.getInputStream(entry);
@@ -663,8 +654,8 @@ public class Config {
 
     private void mergeConfigsFromClasspath() throws IOException {
         List<String> dirs = Arrays.asList(
-                "META-INF/robovm/" + os + "/" + sliceArch,
-                "META-INF/robovm/" + os);
+                "META-INF/aura/" + os + "/" + sliceArch,
+                "META-INF/aura/" + os);
 
         // The algorithm below preserves the order of config data from the
         // classpath. Last the config from this object is added.
@@ -876,9 +867,9 @@ public class Config {
             }
             binDir = new File(homeDir, "bin");
             libVmDir = new File(homeDir, "lib/vm");
-            rtPath = new File(homeDir, "lib/robovm-rt.jar");
+            rtPath = new File(homeDir, "lib/aura-rt.jar");
             cacertsPath = new HashMap<Cacerts, File>();
-            cacertsPath.put(Cacerts.full, new File(homeDir, "lib/robovm-cacerts-full.jar"));
+            cacertsPath.put(Cacerts.full, new File(homeDir, "lib/cacerts-full.jar"));
         }
 
         private Home(File devDir, File binDir, File libVmDir, File rtPath) {
@@ -887,7 +878,7 @@ public class Config {
             this.rtPath = rtPath;
             cacertsPath = new HashMap<Cacerts, File>();
             cacertsPath.put(Cacerts.full, new File(devDir,
-                    "cacerts/full/target/robovm-cacerts-full-" + Version.getVersion() + ".jar"));
+                    "cacerts/full/target/cacerts-full-" + Version.getVersion() + ".jar"));
             this.dev = true;
         }
 
@@ -970,10 +961,10 @@ public class Config {
             if (!libVmDir.exists() || !libVmDir.isDirectory()) {
                 throw new IllegalArgumentException(error + "lib/vm/ missing or invalid");
             }
-            File rtJarFile = new File(libDir, "robovm-rt.jar");
+            File rtJarFile = new File(libDir, "aura-rt.jar");
             if (!rtJarFile.exists() || !rtJarFile.isFile()) {
                 throw new IllegalArgumentException(error
-                        + "lib/robovm-rt.jar missing or invalid");
+                        + "lib/aura-rt.jar missing or invalid");
             }
 
             // Compare the version of this compiler with the version of the
@@ -1011,7 +1002,7 @@ public class Config {
                 throw new IllegalArgumentException(error + "bin/ missing or invalid");
             }
 
-            String rtJarName = "robovm-rt-" + Version.getVersion() + ".jar";
+            String rtJarName = "aura-rt-" + Version.getVersion() + ".jar";
             File rtJar = new File(dir, "rt/target/" + rtJarName);
             File rtClasses = new File(dir, "rt/target/classes/");
             File rtSource = rtJar;

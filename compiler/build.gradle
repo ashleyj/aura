@@ -39,3 +39,12 @@ description = 'Aura Compiler'
         attributes 'Main-Class': 'aura.compiler.AppCompiler'
     }
 }
+
+
+ processResources {
+    filesMatching('**/aura_version') {
+        filter {
+            it.replace('project.version', project.version)
+        }
+    }
+}

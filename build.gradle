@@ -43,7 +43,7 @@ task distTargz( type: Tar) {
 
 	into("${baseName}/lib") {
 		from  "compiler/build/libs/aura-compiler-${version}.jar" rename { String fileName -> fileName.replace("aura-compiler-${version}.jar", "aura-compiler.jar") }
-		from("rt/build/libs/aura-rt-${version}.jar") rename { String fileName -> fileName.replace("robovm-rt-${version}.jar", "robovm-rt.jar") }
+		from("rt/build/libs/aura-rt-${version}.jar") rename { String fileName -> fileName.replace("aura-rt-${version}.jar", "aura-rt.jar") }
 		from("cacerts/full/build/libs/cacerts-full-${version}.jar") rename { String fileName -> fileName.replace("cacerts-full-${version}.jar", "cacerts-full.jar") }
 	}
 
@@ -51,8 +51,8 @@ task distTargz( type: Tar) {
 		from("rt/build/libs/aura-rt-${version}-source.jar") rename { String fileName -> fileName.replace("aura-rt-${version}-source.jar", "aura-rt-sources.jar") }
 	}
 
-	into ("${baseName}/vm") {
-		from ("vm/binaries")
+	into ("${baseName}/lib/vm") {
+		from ("vm/target/binaries")
 	}
 
 	into ("${baseName}/bin") {
