@@ -1,6 +1,8 @@
 apply plugin: 'java'
 
 description = 'Aura Compiler'
+
+
  dependencies {
 
     compile group: 'commons-io', name: 'commons-io', version:'2.4'
@@ -31,7 +33,9 @@ description = 'Aura Compiler'
 }
 
  jar {
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA'
     manifest {
-        attributes 'Main-Class': 'AppCompiler'
+        attributes 'Main-Class': 'aura.compiler.AppCompiler'
     }
 }
