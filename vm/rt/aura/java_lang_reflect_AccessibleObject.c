@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <robovm.h>
+#include <aura.h>
 
 jint Java_java_lang_reflect_AccessibleObject_getAccessFlags(Env* env, Class* c, Class* cls) {
     return cls->flags & CLASS_ACCESS_MASK;

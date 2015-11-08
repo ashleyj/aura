@@ -17,7 +17,7 @@
 #   define _GNU_SOURCE // Required on Linux to get dladdr() support
 #endif
 
-#include <robovm.h>
+#include <aura.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -192,9 +192,9 @@ void rvmParseOption(char* arg, Options* options) {
 static void parseRoboVMIni(Options* options) {
     char path[PATH_MAX];
 
-    // Look for a robovm.ini next to the executable
+    // Look for a aura.ini next to the executable
     strncpy(path, options->resourcesPath, sizeof(path) - 1);
-    strcat(path, "/robovm.ini");
+    strcat(path, "/aura.ini");
     FILE* f = fopen(path, "r");
     if (f) {
         char* line = NULL;

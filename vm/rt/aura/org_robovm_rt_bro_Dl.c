@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 #include <dlfcn.h>
-#include <robovm.h>
+#include <aura.h>
 
-jlong Java_org_robovm_rt_bro_Dl_open(Env* env, Class* c, Object* name) {
+jlong Java_aura_rt_bro_Dl_open(Env* env, Class* c, Object* name) {
     char* cName = NULL;
     if (name) {
         cName = rvmGetStringUTFChars(env, name);
@@ -30,17 +30,17 @@ jlong Java_org_robovm_rt_bro_Dl_open(Env* env, Class* c, Object* name) {
     return PTR_TO_LONG(handle);
 }
 
-jlong Java_org_robovm_rt_bro_Dl_resolve(Env* env, Class* c, jlong handle, Object* name) {
+jlong Java_aura_rt_bro_Dl_resolve(Env* env, Class* c, jlong handle, Object* name) {
     char* cName = rvmGetStringUTFChars(env, name);
     if (!cName) return 0;
     return PTR_TO_LONG(dlsym(LONG_TO_PTR(handle), cName));
 }
 
-void Java_org_robovm_rt_bro_Dl_close(Env* env, Class* c, jlong handle) {
+void Java_aura_rt_bro_Dl_close(Env* env, Class* c, jlong handle) {
     dlclose((void*) LONG_TO_PTR(handle));
 }
 
-Object* Java_org_robovm_rt_bro_Dl_lastError(Env* env, Class* c) {
+Object* Java_aura_rt_bro_Dl_lastError(Env* env, Class* c) {
     char* error = dlerror();
     if (!error) return NULL;
     return rvmNewStringUTF(env, error, -1);

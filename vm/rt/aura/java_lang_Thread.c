@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <robovm.h>
+#include <aura.h>
 
 Object* Java_java_lang_Thread_currentThread(Env* env, Class* cls) {
     return env->currentThread->threadObj;

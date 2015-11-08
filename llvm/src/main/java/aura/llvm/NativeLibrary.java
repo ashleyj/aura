@@ -16,15 +16,9 @@
  */
 package aura.llvm;
 
-import java.io.BufferedOutputStream;
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-
 import aura.llvm.binding.LLVM;
+
+import java.io.*;
 
 /**
  * 
@@ -62,7 +56,7 @@ public class NativeLibrary {
             throw new Error("Unsupported arch: " + System.getProperty("os.arch"));
         }
         
-        libName = "librobovm-llvm." + ext;
+        libName = "libaura-llvm." + ext;
     }
     
     public static synchronized void load() {

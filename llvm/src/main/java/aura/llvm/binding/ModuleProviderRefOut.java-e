@@ -35,9 +35,9 @@ public class ModuleProviderRefOut {
     }
   }
 
-  public ModuleProviderRef getValue() {
+  public SWIGTYPE_p_LLVMOpaqueModuleProvider getValue() {
     long cPtr = LLVMJNI.ModuleProviderRefOut_value_get(swigCPtr, this);
-    return (cPtr == 0) ? null : new ModuleProviderRef(cPtr, false);
+    return (cPtr == 0) ? null : new SWIGTYPE_p_LLVMOpaqueModuleProvider(cPtr, false);
   }
 
   public ModuleProviderRefOut() {

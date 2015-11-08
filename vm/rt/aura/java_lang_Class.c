@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 #include <string.h>
-#include <robovm.h>
+#include <aura.h>
 #include "reflection_helpers.h"
 #include "utlist.h"
 

@@ -4,6 +4,8 @@ include(ExternalProject)
 
 if(OS STREQUAL "linux")
   set(LINUX YES)
+elseif(OS STREQUAL "freebsd")
+    set(FREEBSD YES)
 elseif(OS STREQUAL "macosx")
   set(MACOSX YES)
 elseif(OS STREQUAL "windows")
@@ -29,7 +31,7 @@ if (WINDOWS)
   set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 endif()
 
-project(robovm-llvm)
+project(aura-llvm)
 
 find_package(JNI REQUIRED)
 
@@ -48,6 +50,9 @@ if(MACOSX AND X86_64)
   set(LD_FLAGS "${LD_FLAGS} -arch x86_64 -mmacosx-version-min=10.7")
 elseif(LINUX AND X86)
   set(C_CXX_FLAGS "${C_CXX_FLAGS} -m32")
+  set(LD_FLAGS "${LD_FLAGS} -m64")
+elseif(FREEBSD)
+  set(C_CXX_FLAGS "${C_CXX_FLAGS} -m64")
   set(LD_FLAGS "${LD_FLAGS} -m64")
 elseif(LINUX AND X86_64)
   set(C_CXX_FLAGS "${C_CXX_FLAGS} -m64")
@@ -73,8 +78,7 @@ if(MACOSX)
 endif()
 
 ExternalProject_Add(extclang 
-  GIT_REPOSITORY git://github.com/robovm/clang.git
-  GIT_TAG 7b389564897bc6c0431c42f8f1825f04624ff4e3
+  DOWNLOAD_COMMAND cp -r ${CMAKE_SOURCE_DIR}/extclang ${CMAKE_BINARY_DIR}/extclang-prefix/src
   UPDATE_COMMAND ""
   CONFIGURE_COMMAND "" 
   BUILD_COMMAND ""
@@ -87,8 +91,7 @@ set(LLVM_C_FLAGS "${C_CXX_FLAGS} -fvisibility=hidden -fdata-sections -ffunction-
 set(LLVM_CXX_FLAGS "${C_CXX_FLAGS} -fvisibility=hidden -fdata-sections -ffunction-sections")
 ExternalProject_Add(extllvm
   DEPENDS extclang
-  GIT_REPOSITORY git://github.com/robovm/llvm.git
-  GIT_TAG aceb47b80838681fe65a1d01aac7aae7b863ac5a
+  DOWNLOAD_COMMAND cp -r ${CMAKE_SOURCE_DIR}/extllvm ${CMAKE_BINARY_DIR}/extllvm-prefix/src
   PATCH_COMMAND bash -c "rm -rf tools/clang && ln -s ../../../../extclang-prefix/src/extclang tools/clang && ${CMAKE_SOURCE_DIR}/patches/apply-patches"
   LIST_SEPARATOR ^^
   CONFIGURE_COMMAND cmake -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_RC_COMPILER=${CMAKE_RC_COMPILER} -DCMAKE_SYSTEM_NAME=${CMAKE_SYSTEM_NAME} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DBUILD_SHARED_LIBS=OFF "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/llvm" "-DLLVM_TARGETS_TO_BUILD=${LLVM_ARCHS}" "-DCMAKE_C_FLAGS=${LLVM_C_FLAGS}" "-DCMAKE_CXX_FLAGS=${LLVM_CXX_FLAGS}" -DLLVM_ENABLE_LIBCXX=YES -DLLVM_ENABLE_CXX1Y=YES -DLLVM_ENABLE_THREADS=YES -DLIBCLANG_BUILD_STATIC=YES ../extllvm/
@@ -137,11 +140,18 @@ elseif(MACOSX)
   )
 endif()
 
+
+	
 # This was generated using 'llvm-config --ldflags'
 if(LINUX)
   set(LLVM_LDFLAGS
     -L"${CMAKE_BINARY_DIR}/llvm/lib"
     -lrt -ldl -lpthread -lz
+  )
+elseif(FREEBSD)
+  set(LLVM_LDFLAGS
+    -L"${CMAKE_BINARY_DIR}/llvm/lib"
+    -lrt -lpthread -lz
   )
 elseif(WINDOWS)
   set(LLVM_LDFLAGS
@@ -161,18 +171,20 @@ set(SRC
   src/main/native/ClangExtra.cpp
 )
 
-add_library(robovm-llvm SHARED ${SRC})
-add_dependencies(robovm-llvm extllvm)
-target_link_libraries(robovm-llvm ${LLVM_LIBS} ${LLVM_LDFLAGS})
-set_target_properties(robovm-llvm PROPERTIES LINKER_LANGUAGE CXX)
+add_library(aura-llvm SHARED ${SRC})
+add_dependencies(aura-llvm extllvm)
+target_link_libraries(aura-llvm ${LLVM_LIBS} ${LLVM_LDFLAGS})
+set_target_properties(aura-llvm PROPERTIES LINKER_LANGUAGE CXX)
 if(LINUX)
-  set_target_properties(robovm-llvm PROPERTIES LINK_FLAGS "-Wl,--gc-sections -Wl,--version-script=${CMAKE_SOURCE_DIR}/src/main/native/exports_linux.sym")
+  set_target_properties(aura-llvm PROPERTIES LINK_FLAGS "-Wl,--gc-sections -Wl,--version-script=${CMAKE_SOURCE_DIR}/src/main/native/exports_linux.sym")
+elseif(FREEBSD)
+  set_target_properties(aura-llvm PROPERTIES LINK_FLAGS "-Wl,-dead_strip -Wl,--version-script=${CMAKE_SOURCE_DIR}/src/main/native/exports_freebsd.sym")
 elseif(MACOSX)
-  set_target_properties(robovm-llvm PROPERTIES LINK_FLAGS "-Wl,-dead_strip -Wl,-exported_symbols_list -Wl,${CMAKE_SOURCE_DIR}/src/main/native/exports_macosx.sym")
+  set_target_properties(aura-llvm PROPERTIES LINK_FLAGS "-Wl,-dead_strip -Wl,-exported_symbols_list -Wl,${CMAKE_SOURCE_DIR}/src/main/native/exports_macosx.sym")
 endif()
 set(INSTALL_DIR ${CMAKE_SOURCE_DIR}/src/main/resources/org/robovm/llvm/binding/${OS}/${ARCH})
 if(WINDOWS)
-  install(TARGETS robovm-llvm RUNTIME DESTINATION ${INSTALL_DIR})
+  install(TARGETS aura-llvm RUNTIME DESTINATION ${INSTALL_DIR})
 else()
-  install(TARGETS robovm-llvm LIBRARY DESTINATION ${INSTALL_DIR})
+  install(TARGETS aura-llvm LIBRARY DESTINATION ${INSTALL_DIR})
 endif()

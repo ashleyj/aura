@@ -17,7 +17,7 @@
 /*
  * Implementation of an expandable bit vector.
  */
-#include <robovm.h>
+#include <aura.h>
 
 #include <stdlib.h>
 #include <string.h>

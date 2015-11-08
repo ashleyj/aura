@@ -35,9 +35,9 @@ public class TargetRefOut {
     }
   }
 
-  public TargetRef getValue() {
+  public SWIGTYPE_p_LLVMTarget getValue() {
     long cPtr = LLVMJNI.TargetRefOut_value_get(swigCPtr, this);
-    return (cPtr == 0) ? null : new TargetRef(cPtr, false);
+    return (cPtr == 0) ? null : new SWIGTYPE_p_LLVMTarget(cPtr, false);
   }
 
   public TargetRefOut() {

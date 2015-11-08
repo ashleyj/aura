@@ -46,6 +46,12 @@ apply plugin: 'com.github.johnrengelman.shadow'
 }
 
 
+jar.doFirst{
+      manifest {
+            attributes("Manifest-Version" : "1.0", "Implementation-Version" : project.version)
+      }
+}
+
 task jarSources(type:Jar){
     from sourceSets.main.getAllSource()
     classifier = 'source'

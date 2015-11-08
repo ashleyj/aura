@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <robovm.h>
+#include <aura.h>
 
 Class* Java_java_lang_Object_getClass(Env* env, Object* thiz) {
     return thiz->clazz;

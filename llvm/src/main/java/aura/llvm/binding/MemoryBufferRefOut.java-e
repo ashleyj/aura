@@ -35,9 +35,9 @@ public class MemoryBufferRefOut {
     }
   }
 
-  public MemoryBufferRef getValue() {
+  public SWIGTYPE_p_LLVMOpaqueMemoryBuffer getValue() {
     long cPtr = LLVMJNI.MemoryBufferRefOut_value_get(swigCPtr, this);
-    return (cPtr == 0) ? null : new MemoryBufferRef(cPtr, false);
+    return (cPtr == 0) ? null : new SWIGTYPE_p_LLVMOpaqueMemoryBuffer(cPtr, false);
   }
 
   public MemoryBufferRefOut() {

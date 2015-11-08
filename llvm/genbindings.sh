@@ -1,13 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 BASE=$(cd $(dirname $0); pwd -P)
-JAVAOUT="$BASE/src/main/java/org/robovm/llvm/binding"
+JAVAOUT="$BASE/src/main/java/aura/llvm/binding"
 COUT="$BASE/src/main/native"
 
 function rename {
     from=$1
     to=$2
-    if [ $(uname) == 'Darwin' ]; then
+    if [ $(uname) == 'Darwin' -o $(uname) == 'FreeBSD' ]; then
     	sed -i '' -e "s/[[:<:]]$from[[:>:]]/$to/g" "$JAVAOUT"/*.java
     else
     	sed -i -e "s/\b$from\b/$to/g" "$JAVAOUT"/*.java

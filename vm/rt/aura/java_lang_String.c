@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <robovm.h>
+#include <aura.h>
 
 Object* Java_java_lang_String_intern(Env* env, Object* thiz) {
     return rvmInternString(env, thiz);

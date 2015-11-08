@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 #include <string.h>
-#include <robovm.h>
+#include <aura.h>
 
 #define LOG_BUF_SIZE 1024
 #define IS_ENABLED(level) (_logLevel < LOG_LEVEL_SILENT && _logLevel <= level)

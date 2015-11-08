@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <robovm.h>
+#include <aura.h>
 
 Object* Java_java_lang_ClassCache_loadReflectionAccess(Env* env, Class* c) {
     Class* ao = rvmFindClassUsingLoader(env, "java/lang/reflect/AccessibleObject", NULL);

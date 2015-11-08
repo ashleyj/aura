@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <robovm.h>
+#include <aura.h>
 
 void Java_java_lang_Runtime_nativeExit(Env* env, Class* clazz, jint code) {
     // TODO: What about other threads? Should we stop them before shutting down?

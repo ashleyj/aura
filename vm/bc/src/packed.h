@@ -16,7 +16,7 @@
 #ifndef PACKED_H
 #define PACKED_H
 
-#include <robovm.h>
+#include <aura.h>
 
 typedef union {
     jshort s;

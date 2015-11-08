@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <robovm.h>
+#include <aura.h>
 
 Object* createMethodObject(Env* env, Method* method);
 Object* createFieldObject(Env* env, Field* field);

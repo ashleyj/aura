@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <robovm.h>
+#include <aura.h>
 #include "reflection_helpers.h"
 
 Object* Java_java_lang_reflect_Constructor_internalNewInstance(Env* env, Class* clazz, jlong methodPtr, ObjectArray* parameterTypes, ObjectArray* args) {

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <robovm.h>
+#include <aura.h>
 
 void Java_java_lang_ref_Reference_register(Env* env, Object* thiz, Object* referent) {
     rvmRegisterReference(env, thiz, referent);

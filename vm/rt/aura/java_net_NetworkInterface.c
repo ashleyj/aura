@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <robovm.h>
+#include <aura.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>

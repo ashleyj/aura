@@ -1,10 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 SELF=$(basename $0)
 BASE=$(cd $(dirname $0); pwd -P)
 CLEAN=0
 WIN=0
 WORKERS=1
+MAKE=make
 
 function usage {
   cat <<EOF
@@ -49,6 +50,7 @@ Linux)
   ;;
 FreeBSD)
   TARGETS="freebsd-x86_64"
+  MAKE=gmake
   ;;
 Windows)
   TARGETS="windows-x86_64" # windows-x86"
@@ -104,7 +106,7 @@ for T in $TARGETS; do
   BUILD_TYPE=Release
   mkdir -p "$BASE/target.llvm/build/$T"
   rm -rf "$BASE/binaries/$OS/$ARCH"
-  bash -c "cd '$BASE/target.llvm/build/$T'; cmake -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DOS=$OS -DARCH=$ARCH '$BASE'; make -j $WORKERS install/strip"
+  bash -c "cd '$BASE/target.llvm/build/$T'; cmake --debug-output -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DOS=$OS -DARCH=$ARCH '$BASE'; $MAKE -j $WORKERS install/strip"
   R=$?
   if [[ $R != 0 ]]; then
     echo "$T build failed"

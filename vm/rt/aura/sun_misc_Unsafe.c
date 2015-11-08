@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 #include <stddef.h>
-#include <robovm.h>
+#include <aura.h>
 #include "reflection_helpers.h"
 
 static inline jboolean checkNull(Env* env, Object* o) {

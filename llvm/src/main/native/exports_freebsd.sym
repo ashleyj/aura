@@ -1,4 +1,6 @@
 {
-  global: Java_*;
-  local: *;
-}
+  global:
+    Java_*;
+  local:
+    *;
+};

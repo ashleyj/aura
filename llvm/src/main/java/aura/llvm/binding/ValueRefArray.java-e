@@ -35,26 +35,26 @@ public class ValueRefArray {
     }
   }
 
-  public void setValue(ValueRef value) {
-    LLVMJNI.ValueRefArray_value_set(swigCPtr, this, ValueRef.getCPtr(value));
+  public void setValue(SWIGTYPE_p_LLVMOpaqueValue value) {
+    LLVMJNI.ValueRefArray_value_set(swigCPtr, this, SWIGTYPE_p_LLVMOpaqueValue.getCPtr(value));
   }
 
-  public ValueRef getValue() {
+  public SWIGTYPE_p_LLVMOpaqueValue getValue() {
     long cPtr = LLVMJNI.ValueRefArray_value_get(swigCPtr, this);
-    return (cPtr == 0) ? null : new ValueRef(cPtr, false);
+    return (cPtr == 0) ? null : new SWIGTYPE_p_LLVMOpaqueValue(cPtr, false);
   }
 
   public ValueRefArray(int nelements) {
     this(LLVMJNI.new_ValueRefArray(nelements), true);
   }
 
-  public ValueRef get(int index) {
+  public SWIGTYPE_p_LLVMOpaqueValue get(int index) {
     long cPtr = LLVMJNI.ValueRefArray_get(swigCPtr, this, index);
-    return (cPtr == 0) ? null : new ValueRef(cPtr, false);
+    return (cPtr == 0) ? null : new SWIGTYPE_p_LLVMOpaqueValue(cPtr, false);
   }
 
-  public void set(int index, ValueRef value) {
-    LLVMJNI.ValueRefArray_set(swigCPtr, this, index, ValueRef.getCPtr(value));
+  public void set(int index, SWIGTYPE_p_LLVMOpaqueValue value) {
+    LLVMJNI.ValueRefArray_set(swigCPtr, this, index, SWIGTYPE_p_LLVMOpaqueValue.getCPtr(value));
   }
 
 }

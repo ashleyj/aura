@@ -2,7 +2,7 @@ project(core)
 
 include_directories(../include ${CMAKE_BINARY_DIR}/gc/include)
 
-add_definitions(-DROBOVM_CORE_BUILD)
+add_definitions(-DAURA_CORE_BUILD)
 
 set(SRC
   array.c 
@@ -49,11 +49,11 @@ if(FREEBSD)
 	set_property(SOURCE proxy.c PROPERTY COMPILE_FLAGS "-I/usr/local/include")
 ENDIF()
 
-add_library(robovm-core STATIC ${SRC})
-add_dependencies(robovm-core extgc)
+add_library(aura-core STATIC ${SRC})
+add_dependencies(aura-core extgc)
 
-set_target_properties(robovm-core PROPERTIES SUFFIX "${LIB_SUFFIX}")
-install(TARGETS robovm-core DESTINATION ${INSTALL_DIR})
+set_target_properties(aura-core PROPERTIES SUFFIX "${LIB_SUFFIX}")
+install(TARGETS aura-core DESTINATION ${INSTALL_DIR})
 
 add_executable(test_call0 test/test_call0.c test/CuTest.c call0-${OS_FAMILY}-${ARCH}.s unwind.c)
 add_library(test_call0_lib STATIC test/test_call0.c test/CuTest.c call0-${OS_FAMILY}-${ARCH}.s unwind.c)

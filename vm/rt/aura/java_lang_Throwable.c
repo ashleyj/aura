@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 #include <string.h>
-#include <robovm.h>
+#include <aura.h>
 
 jlong Java_java_lang_Throwable_nativeFillInStackTrace(Env* env, Object* thiz) {
     if (rvmIsCriticalOutOfMemoryError(env, thiz)) {

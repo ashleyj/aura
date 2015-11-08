@@ -13,16 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <robovm.h>
+#include <aura.h>
 
-void Java_org_robovm_rt_Signals_installChainingSignals(Env* env, Class* c) {
+void Java_aura_rt_Signals_installChainingSignals(Env* env, Class* c) {
     rvmInstallChainingSignals(env);
 }
 
-void Java_org_robovm_rt_Signals_reinstallSavedSignals(Env* env, Class* c, jlong state) {
+void Java_aura_rt_Signals_reinstallSavedSignals(Env* env, Class* c, jlong state) {
     rvmReinstallSavedSignals(env, LONG_TO_PTR(state));
 }
 
-jlong Java_org_robovm_rt_Signals_saveSignals(Env* env, Class* c) {
+jlong Java_aura_rt_Signals_saveSignals(Env* env, Class* c) {
     return PTR_TO_LONG(rvmSaveSignals(env));
 }

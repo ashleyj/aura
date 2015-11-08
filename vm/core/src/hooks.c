@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <robovm.h>
+#include <aura.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -22,7 +22,7 @@
 #include <string.h>
 #include <errno.h>
 #include <netinet/tcp.h>
-#include <robovm/types.h>
+#include <aura/types.h>
 #include "private.h"
 
 #define LOG_TAG "hooks"
