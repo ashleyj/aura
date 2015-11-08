@@ -16,13 +16,13 @@
  */
 package aura.llvm;
 
-import static org.junit.Assert.*;
+import org.junit.Ignore;
+import org.junit.Test;
 
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 /**
  * Tests {@link Target}.
@@ -38,23 +38,12 @@ public class TargetTest {
     @Test
     public void testGetTargetsMap() throws Exception {
         Map<String, Target> map = Target.getTargetsMap();
-        assertFalse(map.isEmpty());
-        Target arm = map.get("arm");
-        assertNotNull(arm);
-        Target thumb = map.get("thumb");
-        assertNotNull(thumb);
-        Target x86 = map.get("x86");
-        assertNotNull(x86);
         Target x86_64 = map.get("x86-64");
         assertNotNull(x86_64);
     }
 
     @Test
     public void testGetTarget() throws Exception {
-        Target arm = Target.getTarget("arm");
-        assertNotNull(arm);
-        assertEquals("arm", arm.getName());
-        assertEquals("ARM", arm.getDescription());
         Target x86 = Target.getTarget("x86");
         assertNotNull(x86);
         assertEquals("x86", x86.getName());
@@ -68,10 +57,10 @@ public class TargetTest {
     
     @Test
     public void testLookupTarget() throws Exception {
-        Target t = Target.lookupTarget("thumbv7-unknown-ios");
+        Target t = Target.lookupTarget("x86_64-unknown-freebsd");
         assertNotNull(t);
-        assertEquals("thumb", t.getName());
-        assertEquals("Thumb", t.getDescription());
+        assertEquals("x86-64", t.getName());
+        assertTrue(t.getDescription().contains("64-bit"));
         
         try {
             Target.lookupTarget("foobar");
@@ -93,15 +82,6 @@ public class TargetTest {
             fail("Unknown os.arch: " + archProp);
         }
     }
-    
-    @Test
-    public void testCreateTargetMachine() throws Exception {
-        Target t = Target.getTarget("thumb");
-        try (TargetMachine tm = t.createTargetMachine("thumbv7-unknown-ios")) {
-            assertNotNull(tm);
-            assertEquals("thumbv7-unknown-ios", tm.getTriple());
-            assertEquals(t, tm.getTarget());
-        }
-    }
+
     
 }

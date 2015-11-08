@@ -16,6 +16,7 @@
  */
 package aura.llvm;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -56,6 +57,7 @@ public class ModuleTest {
     }
     
     @Test
+    @Ignore
     public void testParseClangFile() throws Exception {
         String c = 
                 "extern void printf(const char*, ...);\n" +
@@ -63,7 +65,7 @@ public class ModuleTest {
                 "    printf(\"Hello world!\");\n" +
                 "}\n";
         try (Context context = new Context()) {
-            try (Module m = Module.parseClangString(context, c, "test.c", "arm64-unknown-ios")) {
+            try (Module m = Module.parseClangString(context, c, "test.c", "x86_64-unknown-freebsd")) {
                 Set<String> functionNames = new TreeSet<>();
                 for (Function f : m.getFunctions()) {
                     functionNames.add(f.getName());
