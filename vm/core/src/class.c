@@ -302,7 +302,9 @@ static Class* findClass(Env* env, const char* className, Object* classLoader, Cl
 
 static Class* findBootClass(Env* env, const char* className) {
     Class* clazz = findClass(env, className, NULL, env->vm->options->loadBootClass);
-    if (rvmExceptionOccurred(env)) return NULL;
+    if (rvmExceptionOccurred(env)) {
+        return NULL;
+    }
     if (clazz != NULL) {
         if (clazz->classLoader != NULL) {
             // Not a boot class
@@ -1087,6 +1089,9 @@ Field* rvmGetFields(Env* env, Class* clazz) {
 }
 
 Method* rvmGetMethods(Env* env, Class* clazz) {
+    if (clazz == 1) {
+        return NULL;
+    }
     if (clazz->_methods != &METHODS_NOT_LOADED) return clazz->_methods;
 
     obtainClassLock();
@@ -1097,7 +1102,9 @@ Method* rvmGetMethods(Env* env, Class* clazz) {
         }
     }
     releaseClassLock();
-    if (rvmExceptionCheck(env)) return NULL;
+    if (rvmExceptionCheck(env)) {
+        return NULL;
+    }
     return clazz->_methods;
 }
 

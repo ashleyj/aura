@@ -156,6 +156,8 @@ if(IOS)
   set(LD_FLAGS "${LD_FLAGS} -miphoneos-version-min=${IOS_MIN_VERSION}")
 endif()
 
+#set(CMAKE_C_FLAGS_RELEASE "-O0 -g -pg")
+#set(CMAKE_CXX_FLAGS_RELEASE "-O0 -g -pg")
 set(CMAKE_C_FLAGS_RELEASE "-Os -DNDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "-Os -DNDEBUG")
 
@@ -201,7 +203,7 @@ elseif(DARWIN)
   add_definitions(-DDARWIN)
 endif()
 
-if (ARCH STREQUAL "x86_64")
+if (ARCH STREQUAL "x86_64" OR FREEBSD)
   add_definitions(-DRVM_X86_64)
 elseif (ARCH STREQUAL "x86")
   add_definitions(-DRVM_X86)

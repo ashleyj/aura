@@ -40,7 +40,7 @@ message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
 
 if (ARCH STREQUAL "x86")
   set(X86 YES)
-elseif (ARCH STREQUAL "x86_64")
+elseif (ARCH STREQUAL "x86_64" OR ARCH STREQUAL "amd64")
   set(X86_64 YES)
 endif()
 

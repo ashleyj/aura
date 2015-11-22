@@ -83,7 +83,6 @@ static void initOptions() {
 
 static int bcmain(int argc, char* argv[]) {
     initOptions();
-
     if (!rvmInitOptions(argc, argv, &options, FALSE)) {
         fprintf(stderr, "rvmInitOptions(...) failed!\n");
         return 1;

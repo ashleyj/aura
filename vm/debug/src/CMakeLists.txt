@@ -6,7 +6,7 @@ set(SRC
   debug.c 
 )
 
-add_library(robovm-debug STATIC ${SRC})
+add_library(aura-debug STATIC ${SRC})
 
-set_target_properties(robovm-debug PROPERTIES SUFFIX "${LIB_SUFFIX}")
-install(TARGETS robovm-debug DESTINATION ${INSTALL_DIR})
+set_target_properties(aura-debug PROPERTIES SUFFIX "${LIB_SUFFIX}")
+install(TARGETS aura-debug DESTINATION ${INSTALL_DIR})

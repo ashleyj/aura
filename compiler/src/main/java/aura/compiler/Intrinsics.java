@@ -16,13 +16,9 @@
  */
 package aura.compiler;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import aura.compiler.llvm.FunctionRef;
 import aura.compiler.llvm.FunctionType;
 import aura.compiler.llvm.Type;
-
 import soot.SootFieldRef;
 import soot.SootMethod;
 import soot.SootMethodRef;
@@ -30,6 +26,9 @@ import soot.jimple.DefinitionStmt;
 import soot.jimple.InvokeExpr;
 import soot.jimple.StaticFieldRef;
 import soot.jimple.Stmt;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Contains intrinsic functions. These are functions that will replace calls
@@ -93,7 +92,7 @@ public class Intrinsics {
         if (methodRef.name().startsWith("memmove") 
                 && "VM".equals(methodRef.declaringClass().getName())) {
             
-            return new FunctionRef("intrinsics.org_robovm_rt_VM_" + methodRef.name(), 
+            return new FunctionRef("intrinsics.aura_rt_VM_" + methodRef.name(),
                     new FunctionType(Type.VOID, Types.ENV_PTR, Type.I64, Type.I64, Type.I64));
         }
 

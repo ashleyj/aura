@@ -231,6 +231,7 @@ jboolean rvmInitOptions(int argc, char* argv[], Options* options, jboolean ignor
         }
     }
 
+
     if (strlen(options->resourcesPath) == 0) {
         strncpy(options->resourcesPath, options->imagePath, sizeof(options->resourcesPath) - 1);
         jint i = strlen(options->resourcesPath);
@@ -249,6 +250,7 @@ jboolean rvmInitOptions(int argc, char* argv[], Options* options, jboolean ignor
 #endif
         }
     }
+
 
     // Look for a robovm.ini in the resources path
     parseRoboVMIni(options);
@@ -304,7 +306,9 @@ Env* rvmStartup(Options* options) {
     // TODO: Error handling
 
     TRACE("Initializing logging");
-    if (!rvmInitLog(options)) return NULL;
+    if (!rvmInitLog(options)) {
+        return NULL;
+    }
 
 #if defined(IOS) && (defined(RVM_ARMV7) || defined(RVM_THUMBV7))
     // Enable IEEE-754 denormal support.
@@ -315,6 +319,7 @@ Env* rvmStartup(Options* options) {
     fenv.__fpscr &= ~__fpscr_flush_to_zero;
     fesetenv(&fenv);
 #endif
+
     // print PID if it was requested
     if(options->printPID) {
         pid_t pid = getpid();
@@ -410,11 +415,21 @@ Env* rvmStartup(Options* options) {
     // Start Daemons
     TRACE("Starting Daemons");
     java_lang_Daemons = rvmFindClassUsingLoader(env, "java/lang/Daemons", NULL);
-    if (!java_lang_Daemons) goto error_daemons;
+    if (!java_lang_Daemons) {
+        TRACE("Failed to start java/lang/Daemons");
+        goto error_daemons;
+    }
     java_lang_Daemons_start = rvmGetClassMethod(env, java_lang_Daemons, "start", "()V");
-    if (!java_lang_Daemons_start) goto error_daemons;
+    if (!java_lang_Daemons_start){
+        TRACE("Failed to call Daemons start");
+        goto error_daemons;
+    }
     rvmCallVoidClassMethod(env, java_lang_Daemons, java_lang_Daemons_start);
-    if (rvmExceptionCheck(env)) goto error_daemons;
+    if (rvmExceptionCheck(env)) {
+        rvmPrintStackTrace(env, env->throwable);
+        TRACE("Exception thrown during daemon initialisation");
+        goto error_daemons;
+    }
     TRACE("Daemons started");
 
     jboolean errorDuringSetup = FALSE;

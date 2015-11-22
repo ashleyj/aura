@@ -16,40 +16,25 @@
  */
 package aura.compiler.target;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-import java.util.zip.ZipOutputStream;
-
-import aura.compiler.config.Arch;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import aura.compiler.clazz.Path;
+import aura.compiler.config.Arch;
 import aura.compiler.config.Config;
 import aura.compiler.config.OS;
 import aura.compiler.config.Resource;
 import aura.compiler.config.Resource.Walker;
 import aura.compiler.util.ToolchainUtil;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.simpleframework.xml.Transient;
+
+import java.io.*;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 
 /**
  * @author niklas
@@ -114,22 +99,22 @@ public abstract class AbstractTarget implements Target {
         
         String libSuffix = config.isUseDebugLibs() ? "-dbg" : "";
         
-        libs.add("-lrobovm-bc" + libSuffix); 
+        libs.add("-laura-bc" + libSuffix);
         if (config.getOs().getFamily() == OS.Family.darwin) {
             libs.add("-force_load");
-            libs.add(new File(config.getOsArchDepLibDir(), "librobovm-rt" + libSuffix + ".a").getAbsolutePath());
+            libs.add(new File(config.getOsArchDepLibDir(), "libaura-rt" + libSuffix + ".a").getAbsolutePath());
         } else {
-            libs.addAll(Arrays.asList("-Wl,--whole-archive", "-lrobovm-rt" + libSuffix, "-Wl,--no-whole-archive"));            
+            libs.addAll(Arrays.asList("-Wl,--whole-archive", "-laura-rt" + libSuffix, "-Wl,--no-whole-archive"));
         }
         if (config.isSkipInstall()) {
-            libs.add("-lrobovm-debug" + libSuffix);
+            libs.add("-laura-debug" + libSuffix);
         }
 		if (config.getOs().getFamily() == OS.Family.freebsd) {
 			libs.addAll(Arrays.asList(
-					"-lrobovm-core" + libSuffix, "-lgc" + libSuffix, "-lpthread", "-lm","-lc++", "-lssl"));
+					"-laura-core" + libSuffix, "-lgc" + libSuffix, "-lpthread", "-lc","-lm","-lc++", "-lssl", "-lcrypto", "-Wall", "-Wextra", "-Wl"));
 		} else {
 			libs.addAll(Arrays.asList(
-					"-lrobovm-core" + libSuffix, "-lgc" + libSuffix, "-lpthread", "-ldl", "-lm", "-lz"));
+					"-laura-core" + libSuffix, "-lgc" + libSuffix, "-lpthread", "-ldl", "-lm", "-lz"));
 		}
         if (config.getOs().getFamily() == OS.Family.linux) {
             libs.add("-lrt");
@@ -149,7 +134,7 @@ public abstract class AbstractTarget implements Target {
         exportedSymbols.add("JNI_OnLoad_*");
         exportedSymbols.addAll(config.getExportedSymbols());
 
-        if (config.getOs().getFamily() == OS.Family.linux) {
+        if (config.getOs().getFamily() == OS.Family.linux || config.getOs() == OS.freebsd) {
             ccArgs.add("-Wl,-rpath=$ORIGIN");
             ccArgs.add("-Wl,--gc-sections");
 //            ccArgs.add("-Wl,--print-gc-sections");
@@ -540,8 +525,8 @@ public abstract class AbstractTarget implements Target {
                         if (entry.getName().toLowerCase().endsWith(".class")) {
                             continue;
                         }
-                        if (entry.getName().startsWith("META-INF/robovm/")) {
-                            // Don't include anything under META-INF/robovm/
+                        if (entry.getName().startsWith("META-INF/aura/")) {
+                            // Don't include anything under META-INF/aura/
                             continue;
                         }
                         ZipEntry newEntry = new ZipEntry(entry.getName());
@@ -570,8 +555,8 @@ public abstract class AbstractTarget implements Target {
                         continue;
                     }
                     String entryName = f.getAbsolutePath().substring(basePath.length() + 1);
-                    if (entryName.startsWith("META-INF/robovm/")) {
-                        // Don't include anything under META-INF/robovm/
+                    if (entryName.startsWith("META-INF/aura/")) {
+                        // Don't include anything under META-INF/aura/
                         continue;
                     }
                     ZipEntry newEntry = new ZipEntry(entryName);

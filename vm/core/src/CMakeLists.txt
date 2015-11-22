@@ -3,6 +3,7 @@ project(core)
 include_directories(../include ${CMAKE_BINARY_DIR}/gc/include)
 
 add_definitions(-DAURA_CORE_BUILD)
+add_compile_options(-g)
 
 set(SRC
   array.c 

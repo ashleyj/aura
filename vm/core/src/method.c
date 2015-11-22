@@ -713,7 +713,7 @@ static jdouble callDoubleMethod(Env* env, CallInfo* callInfo) {
 
 void rvmCallVoidInstanceMethodA(Env* env, Object* obj, Method* method, jvalue* args) {
     CallInfo* callInfo = INIT_CALL_INFO(env, obj, method, TRUE, args);
-    if (!callInfo) return;
+    if (!callInfo || !obj) return;
     if (obj && CLASS_IS_PROXY(obj->clazz)) {
         env->reserved0 = (void*) method->name;
         env->reserved1 = (void*) method->desc;
@@ -948,6 +948,7 @@ void rvmCallNonvirtualVoidInstanceMethodV(Env* env, Object* obj, Method* method,
 }
 
 void rvmCallNonvirtualVoidInstanceMethod(Env* env, Object* obj, Method* method, ...) {
+    if (!obj) { return; }
     va_list args;
     va_start(args, method);
     rvmCallNonvirtualVoidInstanceMethodV(env, obj, method, args);
@@ -1155,7 +1156,9 @@ void rvmCallVoidClassMethodA(Env* env, Class* clazz, Method* method, jvalue* arg
     CallInfo* callInfo = INIT_CALL_INFO(env, NULL, method, FALSE, args);
     if (!callInfo) return;
     rvmInitialize(env, method->clazz);
-    if (rvmExceptionOccurred(env)) return;
+    if (rvmExceptionOccurred(env)) {
+        return;
+    }
     callVoidMethod(env, callInfo);
 }
 
@@ -1419,6 +1422,7 @@ jboolean rvmLoadNativeLibrary(Env* env, const char* path, Object* classLoader) {
         nativeLibs = &mainNativeLibs;
     } else {
         // Unknown classloader
+
         rvmThrowUnsatisfiedLinkError(env, "Unknown classloader");
         return FALSE;
     }

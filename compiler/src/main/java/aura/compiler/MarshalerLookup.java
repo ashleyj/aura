@@ -59,7 +59,7 @@ import soot.tagkit.Tag;
  * Looks up Bro marshalers.
  */
 public class MarshalerLookup {
-    private final String BUILTIN_MARSHALERS = "org/robovm/rt/bro/BuiltinMarshalers";
+    private final String BUILTIN_MARSHALERS = "aura/rt/bro/BuiltinMarshalers";
     
     private final Config config;
     private final Map<String, List<Marshaler>> cache = new HashMap<>();
@@ -313,7 +313,7 @@ public class MarshalerLookup {
             } else if (Types.isInstanceOfClass(c, "java.nio.DoubleBuffer")) {
                 return DoubleType.v();
             } else if (Types.isInstanceOfClass(c, "Struct")) {
-                return config.getClazzes().load("org/robovm/rt/bro/Struct")
+                return config.getClazzes().load("aura/rt/bro/Struct")
                             .getSootClass().getType();
             }
         } else if (t instanceof ArrayType) {

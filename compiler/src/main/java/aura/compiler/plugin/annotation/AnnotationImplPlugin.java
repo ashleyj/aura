@@ -16,35 +16,24 @@
  */
 package aura.compiler.plugin.annotation;
 
-import static org.objectweb.asm.Opcodes.*;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-
-import aura.compiler.plugin.CompilerPlugin;
-import org.apache.commons.io.FileUtils;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.FieldVisitor;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Type;
 import aura.compiler.ModuleBuilder;
 import aura.compiler.Types;
 import aura.compiler.clazz.Clazz;
 import aura.compiler.config.Config;
 import aura.compiler.plugin.AbstractCompilerPlugin;
-
+import aura.compiler.plugin.CompilerPlugin;
+import org.apache.commons.io.FileUtils;
+import org.objectweb.asm.*;
 import soot.PrimType;
 import soot.SootClass;
 import soot.SootMethod;
-import soot.tagkit.AnnotationClassElem;
-import soot.tagkit.AnnotationDefaultTag;
-import soot.tagkit.AnnotationDoubleElem;
-import soot.tagkit.AnnotationFloatElem;
-import soot.tagkit.AnnotationIntElem;
-import soot.tagkit.AnnotationLongElem;
-import soot.tagkit.AnnotationStringElem;
+import soot.tagkit.*;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+
+import static org.objectweb.asm.Opcodes.*;
 
 /**
  * {@link CompilerPlugin} which generates implementation classes for runtime
@@ -54,7 +43,7 @@ public class AnnotationImplPlugin extends AbstractCompilerPlugin {
     private static final int MOD_ANNOTATION = 0x00002000;
 
     public static final String IMPL_CLASS_NAME_SUFFIX = "$Impl";
-    private static final String BASE_CLASS = "org/robovm/rt/annotation/Annotation";
+    private static final String BASE_CLASS = "aura/rt/annotation/Annotation";
 
     private boolean initialized = false;
 

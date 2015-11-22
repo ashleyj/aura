@@ -16,25 +16,16 @@
  */
 package aura.compiler;
 
-import static soot.tagkit.AnnotationConstants.*;
+import soot.SootClass;
+import soot.SootMethod;
+import soot.SootResolver;
+import soot.tagkit.*;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import soot.SootClass;
-import soot.SootMethod;
-import soot.SootResolver;
-import soot.tagkit.AnnotationAnnotationElem;
-import soot.tagkit.AnnotationArrayElem;
-import soot.tagkit.AnnotationElem;
-import soot.tagkit.AnnotationIntElem;
-import soot.tagkit.AnnotationStringElem;
-import soot.tagkit.AnnotationTag;
-import soot.tagkit.Host;
-import soot.tagkit.Tag;
-import soot.tagkit.VisibilityAnnotationTag;
-import soot.tagkit.VisibilityParameterAnnotationTag;
+import static soot.tagkit.AnnotationConstants.*;
 
 /**
  * @author niklas
@@ -44,29 +35,29 @@ public class Annotations {
     
     public enum Visibility { RuntimeVisible, RuntimeInvisible, SourceVisible, Any }
     
-    public static final String BRIDGE = "Lorg/robovm/rt/bro/annotation/Bridge;";
-    public static final String CALLBACK = "Lorg/robovm/rt/bro/annotation/Callback;";
-    public static final String STRUCT_MEMBER = "Lorg/robovm/rt/bro/annotation/StructMember;";
-    public static final String GLOBAL_VALUE = "Lorg/robovm/rt/bro/annotation/GlobalValue;";
-    public static final String ARRAY = "Lorg/robovm/rt/bro/annotation/Array;";
-    public static final String BASE_TYPE = "Lorg/robovm/rt/bro/annotation/BaseType;";
-    public static final String STRUCT_RET = "Lorg/robovm/rt/bro/annotation/StructRet;";
-    public static final String POINTER = "Lorg/robovm/rt/bro/annotation/Pointer;";
-    public static final String MACHINE_SIZED_FLOAT = "Lorg/robovm/rt/bro/annotation/MachineSizedFloat;";
-    public static final String MACHINE_SIZED_S_INT = "Lorg/robovm/rt/bro/annotation/MachineSizedSInt;";
-    public static final String MACHINE_SIZED_U_INT = "Lorg/robovm/rt/bro/annotation/MachineSizedUInt;";
-    public static final String MARSHALER = "Lorg/robovm/rt/bro/annotation/Marshaler;";
-    public static final String MARSHALERS = "Lorg/robovm/rt/bro/annotation/Marshalers;";
-    public static final String MARSHALS_POINTER = "Lorg/robovm/rt/bro/annotation/MarshalsPointer;";
-    public static final String MARSHALS_VALUE = "Lorg/robovm/rt/bro/annotation/MarshalsValue;";
-    public static final String MARSHALS_ARRAY = "Lorg/robovm/rt/bro/annotation/MarshalsArray;";
-    public static final String AFTER_BRIDGE_CALL = "Lorg/robovm/rt/bro/annotation/AfterBridgeCall;";
-    public static final String AFTER_CALLBACK_CALL = "Lorg/robovm/rt/bro/annotation/AfterCallbackCall;";
-    public static final String BY_VAL = "Lorg/robovm/rt/bro/annotation/ByVal;";
-    public static final String BY_REF = "Lorg/robovm/rt/bro/annotation/ByRef;";
-    public static final String VARIADIC = "Lorg/robovm/rt/bro/annotation/Variadic;";
-    public static final String WEAKLY_LINKED = "Lorg/robovm/rt/annotation/WeaklyLinked;";
-    public static final String STRONGLY_LINKED = "Lorg/robovm/rt/annotation/StronglyLinked;";
+    public static final String BRIDGE = "Laura/rt/bro/annotation/Bridge;";
+    public static final String CALLBACK = "Laura/rt/bro/annotation/Callback;";
+    public static final String STRUCT_MEMBER = "Laura/rt/bro/annotation/StructMember;";
+    public static final String GLOBAL_VALUE = "Laura/rt/bro/annotation/GlobalValue;";
+    public static final String ARRAY = "Laura/rt/bro/annotation/Array;";
+    public static final String BASE_TYPE = "Laura/rt/bro/annotation/BaseType;";
+    public static final String STRUCT_RET = "Laura/rt/bro/annotation/StructRet;";
+    public static final String POINTER = "Laura/rt/bro/annotation/Pointer;";
+    public static final String MACHINE_SIZED_FLOAT = "Laura/rt/bro/annotation/MachineSizedFloat;";
+    public static final String MACHINE_SIZED_S_INT = "Laura/rt/bro/annotation/MachineSizedSInt;";
+    public static final String MACHINE_SIZED_U_INT = "Laura/rt/bro/annotation/MachineSizedUInt;";
+    public static final String MARSHALER = "Laura/rt/bro/annotation/Marshaler;";
+    public static final String MARSHALERS = "Laura/rt/bro/annotation/Marshalers;";
+    public static final String MARSHALS_POINTER = "Laura/rt/bro/annotation/MarshalsPointer;";
+    public static final String MARSHALS_VALUE = "Laura/rt/bro/annotation/MarshalsValue;";
+    public static final String MARSHALS_ARRAY = "Laura/rt/bro/annotation/MarshalsArray;";
+    public static final String AFTER_BRIDGE_CALL = "Laura/rt/bro/annotation/AfterBridgeCall;";
+    public static final String AFTER_CALLBACK_CALL = "Laura/rt/bro/annotation/AfterCallbackCall;";
+    public static final String BY_VAL = "Laura/rt/bro/annotation/ByVal;";
+    public static final String BY_REF = "Laura/rt/bro/annotation/ByRef;";
+    public static final String VARIADIC = "Laura/rt/bro/annotation/Variadic;";
+    public static final String WEAKLY_LINKED = "Laura/rt/annotation/WeaklyLinked;";
+    public static final String STRONGLY_LINKED = "Laura/rt/annotation/StronglyLinked;";
 
     public static boolean hasAnnotation(Host host, String annotationType) {
         return getAnnotation(host, annotationType) != null;

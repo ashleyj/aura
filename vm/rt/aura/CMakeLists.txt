@@ -1,4 +1,5 @@
-project(robovm-rt-core)
+project(aura-rt-core)
+cmake_minimum_required(VERSION 2.8.8)
 
 include_directories(../../core/include ${CMAKE_BINARY_DIR}/gc/include)
 
@@ -22,9 +23,9 @@ set(SRC
   java_lang_reflect_Method.c 
   java_lang_reflect_Proxy.c 
   java_net_NetworkInterface.c 
-  org_robovm_rt_Signals.c 
-  org_robovm_rt_VM.c 
-  org_robovm_rt_bro_Dl.c 
+  aura_rt_Signals.c 
+  aura_rt_VM.c 
+  aura_rt_bro_Dl.c 
   sun_misc_Unsafe.c 
 )
 
@@ -40,6 +41,6 @@ if(DARWIN)
   set_property(SOURCE ${OBJC_SRC} PROPERTY COMPILE_FLAGS ${OBJC_FLAGS})
 endif()
 
-add_library(robovm-rt-core OBJECT ${SRC})
-set(ROBOVM_RT_CORE_OBJECTS $<TARGET_OBJECTS:robovm-rt-core> PARENT_SCOPE)
+add_library(aura-rt-core OBJECT ${SRC})
+set(AURA_RT_CORE_OBJECTS $<TARGET_OBJECTS:aura-rt-core> PARENT_SCOPE)
 
