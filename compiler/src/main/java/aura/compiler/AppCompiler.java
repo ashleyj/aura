@@ -543,7 +543,7 @@ public class AppCompiler {
                 } else if ("-clean".equals(args[i])) {
                     builder.clean(true);
                 } else if ("-help".equals(args[i]) || "-?".equals(args[i])) {
-                    printUsageAndExit(null, builder.getPlugins());
+                    printUsageAndExit(builder.getPlugins());
                 } else if ("-version".equals(args[i])) {
                     printVersionAndExit();
                 } else if ("-cc".equals(args[i])) {
@@ -696,7 +696,7 @@ public class AppCompiler {
             if (verbose && !(t instanceof StringIndexOutOfBoundsException) && !(t instanceof IllegalArgumentException)) {
                 t.printStackTrace();
             }
-            printUsageAndExit(message, builder != null ? builder.getPlugins() : null);
+            printAndExit(message);
         }
 
         try {
@@ -723,7 +723,7 @@ public class AppCompiler {
             if (verbose && !(t instanceof ExecuteException)) {
                 t.printStackTrace();
             }
-            printUsageAndExit(message, builder.getPlugins());
+            printAndExit(message);
         }
     }
 
@@ -828,16 +828,17 @@ public class AppCompiler {
         System.exit(0);
     }
 
-    private static void printUsageAndExit(String errorMessage, List<Plugin> plugins) {
-        if (errorMessage != null) {
-            System.err.format("robovm: %s\n", errorMessage);
-        }
+    private static void printAndExit(String errorMessage) {
+        System.err.format("aura: %s\n", errorMessage);
+    }
+
+    private static void printUsageAndExit(List<Plugin> plugins) {
         List<String> targets = new ArrayList<>();
         targets.add(ConsoleTarget.TYPE);
 
         // @formatter:off 
-        System.err.println("Usage: robovm [-options] class [run-args]");
-        System.err.println("   or  robovm [-options] -jar jarfile [run-args]");
+        System.err.println("Usage: aura [-options] class [run-args]");
+        System.err.println("   or  aura [-options] -jar jarfile [run-args]");
         System.err.println("Options:");
         
         System.err.println("  -bootclasspath <list> ");
@@ -996,7 +997,7 @@ public class AppCompiler {
                 }
             }
         }
-        System.exit(errorMessage != null ? 1 : 0);
+        System.exit(0);
         // @formatter:on
     }
 
