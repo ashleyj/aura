@@ -35,37 +35,8 @@ import aura.compiler.config.OS;
  *
  */
 public class HfsCompressor {
-    private static volatile boolean isLoaded = false;
-    
-    private static void loadLib(Config config) {
-        if(!isLoaded) {
-            String hfscompressorLib = new File(config.getHome().getBinDir(), "libhfscompressor.dylib").getAbsolutePath();
-            System.load(hfscompressorLib);
-            isLoaded = true;
-        }
-    }
-    
-    /**
-     * Writes the given data to the file, trying to compress it
-     * via HFS+ compression on Mac OS X. Simply writes the data
-     * to the file on other systems.
-     */
+
     public void compress(File file, byte[] data, Config config) throws IOException, InterruptedException {
-        if (OS.getDefaultOS() == OS.macosx && System.getenv("ROBOVM_DISABLE_COMPRESSION") == null) {
-            if (!file.getParentFile().exists()) {
-                if (!file.getParentFile().mkdirs()) {
-                    throw new CompilerException("Couldn't create directory for " + file.getAbsolutePath());
-                }
-            }
-            loadLib(config);
-            if(!compressNative(file.getAbsolutePath(), data, data.length)) {
-                config.getLogger().debug("Couldn't compress file %s", file.getAbsolutePath());
-                FileUtils.writeByteArrayToFile(file, data);
-            }
-        } else {
-            FileUtils.writeByteArrayToFile(file, data);
-        }
+        FileUtils.writeByteArrayToFile(file, data);
     }
-    
-    public static native boolean compressNative(String fileName, byte[] data, int len);
 }
