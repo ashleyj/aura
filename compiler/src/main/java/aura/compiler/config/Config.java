@@ -148,7 +148,7 @@ public class Config {
 
     private Home home = null;
     private File tmpDir;
-    private File cacheDir = new File(System.getProperty("user.home"), ".robovm/cache");
+    private File cacheDir = new File(System.getProperty("user.home"), ".aura/cache");
     private File ccBinPath = null;
 
     private boolean clean = false;
@@ -317,7 +317,7 @@ public class Config {
     public File getTmpDir() {
         if (tmpDir == null) {
             try {
-                tmpDir = File.createTempFile("robovm", ".tmp");
+                tmpDir = File.createTempFile("aura", ".tmp");
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -903,29 +903,29 @@ public class Config {
         }
 
         public static Home find() {
-            // Check if ROBOVM_DEV_ROOT has been set. If set it should be
-            // pointing at the root of a complete RoboVM source tree.
-            if (System.getenv("ROBOVM_DEV_ROOT") != null) {
-                File dir = new File(System.getenv("ROBOVM_DEV_ROOT"));
+            // Check if AURA_DEV_ROOT has been set. If set it should be
+            // pointing at the root of a complete Aura source tree.
+            if (System.getenv("AURA_DEV_ROOT") != null) {
+                File dir = new File(System.getenv("AURA_DEV_ROOT"));
                 return validateDevRootDir(dir);
             }
-            if (System.getProperty("ROBOVM_DEV_ROOT") != null) {
-                File dir = new File(System.getProperty("ROBOVM_DEV_ROOT"));
+            if (System.getProperty("AURA_DEV_ROOT") != null) {
+                File dir = new File(System.getProperty("AURA_DEV_ROOT"));
                 return validateDevRootDir(dir);
             }
 
-            if (System.getenv("ROBOVM_HOME") != null) {
-                File dir = new File(System.getenv("ROBOVM_HOME"));
+            if (System.getenv("AURA_HOME") != null) {
+                File dir = new File(System.getenv("AURA_HOME"));
                 return new Home(dir);
             }
 
             List<File> candidates = new ArrayList<File>();
             File userHome = new File(System.getProperty("user.home"));
-            candidates.add(new File(userHome, "Applications/robovm"));
-            candidates.add(new File(userHome, ".robovm/home"));
-            candidates.add(new File("/usr/local/lib/robovm"));
-            candidates.add(new File("/opt/robovm"));
-            candidates.add(new File("/usr/lib/robovm"));
+            candidates.add(new File(userHome, "Applications/aura"));
+            candidates.add(new File(userHome, ".aura/home"));
+            candidates.add(new File("/usr/local/lib/aura"));
+            candidates.add(new File("/opt/aura"));
+            candidates.add(new File("/usr/lib/aura"));
 
             for (File dir : candidates) {
                 if (dir.exists()) {
@@ -933,12 +933,12 @@ public class Config {
                 }
             }
 
-            throw new IllegalArgumentException("ROBOVM_HOME not set and no RoboVM "
+            throw new IllegalArgumentException("AURA_HOME not set and no Aura "
                     + "installation found in " + candidates);
         }
 
         public static void validate(File dir) {
-            String error = "Path " + dir + " is not a valid RoboVM install directory: ";
+            String error = "Path " + dir + " is not a valid Aura install directory: ";
             // Check for required dirs and match the compiler version with our
             // version.
             if (!dir.exists()) {
@@ -968,7 +968,7 @@ public class Config {
             }
 
             // Compare the version of this compiler with the version of the
-            // robovm-rt.jar in the home dir. They have to match.
+            // aura-rt.jar in the home dir. They have to match.
             try {
                 String thisVersion = Version.getVersion();
                 String thatVersion = getImplementationVersion(rtJarFile);
@@ -983,7 +983,7 @@ public class Config {
         }
 
         private static Home validateDevRootDir(File dir) {
-            String error = "Path " + dir + " is not a valid RoboVM source tree: ";
+            String error = "Path " + dir + " is not a valid Aura source tree: ";
             // Check for required dirs.
             if (!dir.exists()) {
                 throw new IllegalArgumentException(error + "no such path");
