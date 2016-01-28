@@ -121,4 +121,9 @@ public class AuraConstants {
             "libcore/util/MutableLong",
             "aura/rt/bro/Struct"
     };
+
+
+    public static final String TRUSTED_CERTIFICATE_STORE_CLASS =
+            "com/android/org/conscrypt/TrustedCertificateStore";
+
 }

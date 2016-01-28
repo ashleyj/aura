@@ -46,11 +46,6 @@ import java.util.concurrent.*;
  */
 public class AppCompiler {
 
-
-
-    private static final String TRUSTED_CERTIFICATE_STORE_CLASS =
-            "com/android/org/conscrypt/TrustedCertificateStore";
-
     /**
      * An {@link Executor} which runs tasks immediately without creating a
      * separate thread.
