@@ -51,11 +51,8 @@ public class ConfigBuilderArgParser extends ArgParser<ConfigBuilder> {
             return configBuilder;
         }
         for (Option option : getCmd().getOptions()) {
-            for (String arg : getCmd().getArgList()) {
-                configBuilder = processArg(option, option.getArgName(), configBuilder);
-                configBuilder = processArg(option, option.getLongOpt(), configBuilder);
-            }
-
+            configBuilder = processArg(option, option.getArgName(), configBuilder);
+            configBuilder = processArg(option, option.getLongOpt(), configBuilder);
         }
         return configBuilder;
     }
