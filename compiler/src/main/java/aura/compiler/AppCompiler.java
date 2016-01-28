@@ -401,12 +401,10 @@ public class AppCompiler {
                 } else {
                     //throw new IllegalArgumentException("Unrecognized option: " + args[i]);
                 }
-            } else {
-                configBuilder.mainClass(args[i++]);
-                break;
             }
             i++;
         }
+        configBuilder.mainClass(args[args.length -1]);
 
         configBuilder.archs(archs.toArray(new Arch[archs.size()]));
 
