@@ -330,110 +330,91 @@ public class AppCompiler {
         boolean archive = false;
         List<Arch> archs = new ArrayList<>();
         List<String> runArgs = new ArrayList<>();
-        //try {
-            configBuilder = new ConfigBuilder();
-            Map<String, PluginArgument> pluginArguments = configBuilder.fetchPluginArguments();
+        configBuilder = new ConfigBuilder();
+        Map<String, PluginArgument> pluginArguments = configBuilder.fetchPluginArguments();
 
-            ConfigBuilderArgParser argParser = new ConfigBuilderArgParser(CommandArgs.options(), args);
+        ConfigBuilderArgParser argParser = new ConfigBuilderArgParser(CommandArgs.options(), args);
 
-            try {
-                argParser.validate();
-                if (!argParser.validateArgs(argParser.getCmd())) {
-                    argParser.usage(CommandArgs.options());
-                    System.exit(1);
-                }
-            } catch (IllegalArgumentException iae) {
-                System.err.println(iae.getMessage());
+        try {
+            argParser.validate();
+            if (!argParser.validateArgs(argParser.getCmd())) {
+                argParser.usage(CommandArgs.options());
                 System.exit(1);
-            } catch (ParseException e) {
-                System.out.println("Error processing options -- this is a bug. Please report");
-                e.printStackTrace();
             }
+        } catch (IllegalArgumentException iae) {
+            System.err.println(iae.getMessage());
+            System.exit(1);
+        } catch (ParseException e) {
+            System.out.println("Error processing options -- this is a bug. Please report");
+            e.printStackTrace();
+        }
 
         configBuilder = argParser.populateObject(configBuilder);
 
-            int i = 0;
-            while (i < args.length) {
-                if ("-properties".equals(args[i])) {
-                    configBuilder.addProperties(new File(args[++i]));
-                } else if (args[i].startsWith("-P")) {
-                    int index = args[i].indexOf('=');
-                    if (index <= 0) {
-                        throw new IllegalArgumentException("Malformed property: " + args[i]);
-                    }
-                    String name = args[i].substring(2, index);
-                    String value = args[i].substring(index + 1);
-                    configBuilder.addProperty(name, value);
-                } else if ("-resources".equals(args[i])) {
-                    for (String p : args[++i].split(":")) {
-                        if (AntPathMatcher.isPattern(p)) {
-                            File dir = new File(AntPathMatcher.rtrimWildcardTokens(p));
-                            String pattern = AntPathMatcher.extractPattern(p);
-                            configBuilder.addResource(new Resource(dir, null).include(pattern));
-                        } else {
-                            configBuilder.addResource(new Resource(new File(p)));
-                        }
-                    }
-                } else if ("-cacerts".equals(args[i])) {
-                    String name = args[++i];
-                    Config.Cacerts cacerts = null;
-                    if (!"none".equals(name)) {
-                        try {
-                            cacerts = Config.Cacerts.valueOf(name);
-                        } catch (IllegalArgumentException e) {
-                            throw new IllegalArgumentException("Illegal -cacerts value: " + name);
-                        }
-                    }
-                    configBuilder.cacerts(cacerts);
-                } else if ("-archive".equals(args[i])) {
-                    archive = true;
-                } else if (args[i].startsWith("-D")) {
-                } else if (args[i].startsWith("-X")) {
-                } else if (args[i].startsWith("-rvm:")) {
-                    runArgs.add(args[i]);
-                } else if (args[i].startsWith("-")) {
-                    String argName = args[i].substring(1, args[i].length());
-                    if (argName.contains("=")) {
-                        argName = argName.substring(0, argName.indexOf('='));
-                    }
-                    PluginArgument arg = pluginArguments.get(argName);
-                    if (arg != null) {
-                        configBuilder.addPluginArgument(args[i].substring(1));
-                    } else {
-                        //throw new IllegalArgumentException("Unrecognized option: " + args[i]);
-                    }
-                } else {
-                    configBuilder.mainClass(args[i++]);
-                    break;
+        int i = 0;
+        while (i < args.length) {
+            if ("-properties".equals(args[i])) {
+                configBuilder.addProperties(new File(args[++i]));
+            } else if (args[i].startsWith("-P")) {
+                int index = args[i].indexOf('=');
+                if (index <= 0) {
+                    throw new IllegalArgumentException("Malformed property: " + args[i]);
                 }
-                i++;
+                String name = args[i].substring(2, index);
+                String value = args[i].substring(index + 1);
+                configBuilder.addProperty(name, value);
+            } else if ("-resources".equals(args[i])) {
+                for (String p : args[++i].split(":")) {
+                    if (AntPathMatcher.isPattern(p)) {
+                        File dir = new File(AntPathMatcher.rtrimWildcardTokens(p));
+                        String pattern = AntPathMatcher.extractPattern(p);
+                        configBuilder.addResource(new Resource(dir, null).include(pattern));
+                    } else {
+                        configBuilder.addResource(new Resource(new File(p)));
+                        }
+                }
+            } else if ("-cacerts".equals(args[i])) {
+                String name = args[++i];
+                Config.Cacerts cacerts = null;
+                if (!"none".equals(name)) {
+                    try {
+                        cacerts = Config.Cacerts.valueOf(name);
+                    } catch (IllegalArgumentException e) {
+                        throw new IllegalArgumentException("Illegal -cacerts value: " + name);
+                    }
+                }
+                configBuilder.cacerts(cacerts);
+            } else if ("-archive".equals(args[i])) {
+                archive = true;
+            } else if (args[i].startsWith("-D")) {
+            } else if (args[i].startsWith("-X")) {
+            } else if (args[i].startsWith("-rvm:")) {
+                runArgs.add(args[i]);
+            } else if (args[i].startsWith("-")) {
+                String argName = args[i].substring(1, args[i].length());
+                if (argName.contains("=")) {
+                    argName = argName.substring(0, argName.indexOf('='));
+                }
+                PluginArgument arg = pluginArguments.get(argName);
+                if (arg != null) {
+                    configBuilder.addPluginArgument(args[i].substring(1));
+                } else {
+                    //throw new IllegalArgumentException("Unrecognized option: " + args[i]);
+                }
+            } else {
+                configBuilder.mainClass(args[i++]);
+                break;
             }
+            i++;
+        }
 
-            configBuilder.archs(archs.toArray(new Arch[archs.size()]));
+        configBuilder.archs(archs.toArray(new Arch[archs.size()]));
 
-            while (i < args.length) {
-                runArgs.add(args[i++]);
-            }
+        while (i < args.length) {
+            runArgs.add(args[i++]);
+        }
 
-            compiler = new AppCompiler(configBuilder.build());
-
-      //  }
-//        } catch (Throwable t) {
-//            String message = t.getMessage();
-//            t.printStackTrace();
-//            if (t instanceof ArrayIndexOutOfBoundsException) {
-//                message = "Missing argument";
-//            }
-//            if (t instanceof IndexOutOfBoundsException) {
-//                message = "Missing argument";
-//            }
-//
-//            //TODO fix this statement
-//            if (verbose && !(t instanceof StringIndexOutOfBoundsException) && !(t instanceof IllegalArgumentException)) {
-//                t.printStackTrace();
-//            }
-//           // printAndExit(message);
-//        }
+        compiler = new AppCompiler(configBuilder.build());
 
         try {
             if (archive) {
