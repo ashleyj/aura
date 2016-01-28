@@ -125,7 +125,8 @@ public abstract class AbstractTarget implements Target {
             libs.add("-framework");
             libs.add("Foundation");
         }
-        
+
+        ccArgs.add("-v");
         ccArgs.add("-L");
         ccArgs.add(config.getOsArchDepLibDir().getAbsolutePath());
 
