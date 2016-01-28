@@ -222,6 +222,12 @@ public class AppCompilerTest {
             }
             throw new IOException();
         }
-        
+    }
+
+    @Test
+    public void testMain() throws IOException {
+        /* Should not throw exception */
+        AppCompiler.main(new String[] {});
+        AppCompiler.main(new String[]{"-?"});
     }
 }
