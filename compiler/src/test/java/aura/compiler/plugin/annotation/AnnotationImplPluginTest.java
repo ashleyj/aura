@@ -20,7 +20,7 @@ import aura.compiler.ModuleBuilder;
 import aura.compiler.clazz.Clazz;
 import aura.compiler.clazz.Dependency;
 import aura.compiler.config.Config;
-import aura.compiler.config.Config.Builder;
+import aura.compiler.config.ConfigBuilder;
 import aura.compiler.config.FakeHome;
 import aura.rt.bro.annotation.Bridge;
 import org.junit.BeforeClass;
@@ -44,18 +44,18 @@ public class AnnotationImplPluginTest {
     
     @BeforeClass
     public static void initialize() throws IOException {
-        Builder builder = new Builder();
+        ConfigBuilder configBuilder = new ConfigBuilder();
         for (String p : System.getProperty("sun.boot.class.path").split(File.pathSeparator)) {
-            builder.addBootClasspathEntry(new File(p));
+            configBuilder.addBootClasspathEntry(new File(p));
         }
         for (String p : System.getProperty("java.class.path").split(File.pathSeparator)) {
-            builder.addClasspathEntry(new File(p));
+            configBuilder.addClasspathEntry(new File(p));
         }
-        builder.home(new FakeHome());
-        builder.mainClass("Main");
+        configBuilder.home(new FakeHome());
+        configBuilder.mainClass("Main");
         File cacheDir = Files.createTempDirectory(AnnotationImplPlugin.class.getSimpleName()).toFile();
-        builder.cacheDir(cacheDir);
-        config = builder.build();
+        configBuilder.cacheDir(cacheDir);
+        config = configBuilder.build();
     }
     
     private Clazz toClazz(Class<?> cls) {

@@ -21,6 +21,7 @@ import static org.junit.Assert.*;
 import java.io.File;
 import java.io.IOException;
 
+import aura.compiler.config.ConfigBuilder;
 import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -60,17 +61,17 @@ public class DependencyGraphTest {
 
     @Before
     public void setup() throws Exception {
-        Config.Builder builder = new Config.Builder()
+        ConfigBuilder configBuilder = new ConfigBuilder()
                 .home(new FakeHome())
                 .skipRuntimeLib(true)
                 .skipLinking(true);
         for (String path : System.getProperty("sun.boot.class.path").split(File.pathSeparator)) {
-            builder.addBootClasspathEntry(new File(path));
+            configBuilder.addBootClasspathEntry(new File(path));
         }
         for (String path : System.getProperty("java.class.path").split(File.pathSeparator)) {
-            builder.addClasspathEntry(new File(path));
+            configBuilder.addClasspathEntry(new File(path));
         }
-        config = builder.build();
+        config = configBuilder.build();
 
         Root = loadClazz(Root.class);
         A = loadClazz(A.class);

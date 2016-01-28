@@ -9,7 +9,10 @@ description = 'Aura Compiler'
     compile group: 'org.apache.commons', name: 'commons-exec', version:'1.0.1'
     compile group: 'org.apache.commons', name: 'commons-lang3', version:'3.3.2'
     compile group: 'com.googlecode.plist', name: 'dd-plist', version:'1.16'
-    compile(group: 'org.simpleframework', name: 'simple-xml', version:'2.7') {
+    compile group: 'commons-cli', name: 'commons-cli', version:'1.3.1'
+
+
+     compile(group: 'org.simpleframework', name: 'simple-xml', version:'2.7') {
         exclude(module: 'stax-api')
         exclude(module: 'xpp3')
         exclude(module: 'stax')

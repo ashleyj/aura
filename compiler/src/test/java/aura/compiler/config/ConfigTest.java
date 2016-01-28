@@ -22,7 +22,6 @@ import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import aura.compiler.config.Config.Builder;
 import aura.compiler.config.Config.Home;
 import aura.compiler.config.Config.Lib;
 import org.zeroturnaround.zip.ZipUtil;
@@ -61,9 +60,9 @@ public class ConfigTest {
     
     @Test
     public void testReadConsole() throws Exception {
-        Config.Builder builder = new Config.Builder();
-        builder.read(new InputStreamReader(getClass().getResourceAsStream("ConfigTest.console.xml"), "utf-8"), wd);
-        Config config = builder.config;
+        ConfigBuilder configBuilder = new ConfigBuilder();
+        configBuilder.read(new InputStreamReader(getClass().getResourceAsStream("ConfigTest.console.xml"), "utf-8"), wd);
+        Config config = configBuilder.config;
         assertEquals(Arrays.asList(new File(wd, "foo1.jar"), new File(tmp, "foo2.jar")), config.getClasspath());
         assertEquals(Arrays.asList("Foundation", "AppKit"), config.getFrameworks());
         assertEquals(Arrays.asList(
@@ -91,9 +90,9 @@ public class ConfigTest {
     
     @Test
     public void testReadOldConsole() throws Exception {
-        Config.Builder builder = new Config.Builder();
-        builder.read(new InputStreamReader(getClass().getResourceAsStream("ConfigTest.old.console.xml"), "utf-8"), wd);
-        Config config = builder.config;
+        ConfigBuilder configBuilder = new ConfigBuilder();
+        configBuilder.read(new InputStreamReader(getClass().getResourceAsStream("ConfigTest.old.console.xml"), "utf-8"), wd);
+        Config config = configBuilder.config;
         assertEquals(Arrays.asList(new File(wd, "foo1.jar"), new File(tmp, "foo2.jar")), config.getClasspath());
         assertEquals(Arrays.asList("Foundation", "AppKit"), config.getFrameworks());
         assertEquals(Arrays.asList(
@@ -113,30 +112,30 @@ public class ConfigTest {
     
     @Test
     public void testWriteConsole() throws Exception {
-        Config.Builder builder = new Config.Builder();
-        builder.addClasspathEntry(new File("foo1.jar"));
-        builder.addClasspathEntry(new File(tmp, "foo2.jar"));
-        builder.addFramework("Foundation");
-        builder.addFramework("AppKit");
-        builder.addLib(new Config.Lib("dl", true));
-        builder.addLib(new Config.Lib("libs/libmy.a", true));
-        builder.addLib(new Config.Lib("libs/foo.o", true));
-        builder.addLib(new Config.Lib("/usr/lib/libbar.a", false));
-        builder.addResource(new Resource(new File("/tmp/wd/resources")));
-        builder.addResource(new Resource(new File("/usr/share/resources")));
-        builder.addResource(new Resource(new File("/tmp/wd"), null).include("data/**/*"));
-        builder.addResource(new Resource(null, null).include("videos/**/*.avi"));
-        builder.addResource(
+        ConfigBuilder configBuilder = new ConfigBuilder();
+        configBuilder.addClasspathEntry(new File("foo1.jar"));
+        configBuilder.addClasspathEntry(new File(tmp, "foo2.jar"));
+        configBuilder.addFramework("Foundation");
+        configBuilder.addFramework("AppKit");
+        configBuilder.addLib(new Config.Lib("dl", true));
+        configBuilder.addLib(new Config.Lib("libs/libmy.a", true));
+        configBuilder.addLib(new Config.Lib("libs/foo.o", true));
+        configBuilder.addLib(new Config.Lib("/usr/lib/libbar.a", false));
+        configBuilder.addResource(new Resource(new File("/tmp/wd/resources")));
+        configBuilder.addResource(new Resource(new File("/usr/share/resources")));
+        configBuilder.addResource(new Resource(new File("/tmp/wd"), null).include("data/**/*"));
+        configBuilder.addResource(new Resource(null, null).include("videos/**/*.avi"));
+        configBuilder.addResource(
                 new Resource(new File("/tmp/wd/resources"), "data")
                     .include("**/*.png")
                     .exclude("**/foo.png")
                     .flatten(true));
-        builder.addForceLinkClass("javax.**.*");
-        builder.os(OS.macosx);
-        builder.archs(Arch.x86, Arch.x86_64);
+        configBuilder.addForceLinkClass("javax.**.*");
+        configBuilder.os(OS.macosx);
+        configBuilder.archs(Arch.x86, Arch.x86_64);
         
         StringWriter out = new StringWriter();
-        builder.write(out, wd);
+        configBuilder.write(out, wd);
         assertEquals(IOUtils.toString(getClass().getResourceAsStream("ConfigTest.console.xml")), out.toString());
     }
 
@@ -149,13 +148,13 @@ public class ConfigTest {
                 File root = new File(p, "META-INF/robovm/" + os2 + "/" + arch2);
                 root.mkdirs();
                 if (!new File(root, "robovm.xml").exists()) {
-                    new Config.Builder().write(new File(root, "robovm.xml"));
+                    new ConfigBuilder().write(new File(root, "robovm.xml"));
                 }
             }
         }
 
         File root = new File(p, "META-INF/robovm/" + os + "/" + arch);
-        new Config.Builder()
+        new ConfigBuilder()
             .addExportedSymbol(id.toUpperCase() + "*")
             .addForceLinkClass("com." + id.toLowerCase() + ".**")
             .addFrameworkPath(new File(root, id.toLowerCase() + "/bar"))
@@ -204,24 +203,24 @@ public class ConfigTest {
                   createMergeConfig(tmpDir, "p3", "Baaz", OS.macosx, Arch.x86, false);
         File p3 = createMergeConfig(tmpDir, "p3", "Raaz", OS.macosx, Arch.x86_64, true);
         
-        Config.Builder builder = new Config.Builder();
-        builder.cacheDir(cacheDir);
-        builder.os(OS.macosx);
-        builder.arch(Arch.x86);
-        builder.targetType(ConsoleTarget.TYPE);
-        builder.mainClass("Main");
-        builder.addClasspathEntry(p1);
-        builder.addClasspathEntry(p2);
-        builder.addClasspathEntry(p3);
-        builder.addExportedSymbol("YADA*");
-        builder.addFrameworkPath(new File(p1, "yada"));
-        builder.addFramework("Yada");
-        builder.addForceLinkClass("org.yada.**");
-        builder.addLib(new Lib("yada", true));
-        builder.addResource(new Resource(new File(p1, "resources")));
-        builder.addWeakFramework("WeakYada");
-        builder.home(fakeHome);
-        Config config = builder.build();
+        ConfigBuilder configBuilder = new ConfigBuilder();
+        configBuilder.cacheDir(cacheDir);
+        configBuilder.os(OS.macosx);
+        configBuilder.arch(Arch.x86);
+        configBuilder.targetType(ConsoleTarget.TYPE);
+        configBuilder.mainClass("Main");
+        configBuilder.addClasspathEntry(p1);
+        configBuilder.addClasspathEntry(p2);
+        configBuilder.addClasspathEntry(p3);
+        configBuilder.addExportedSymbol("YADA*");
+        configBuilder.addFrameworkPath(new File(p1, "yada"));
+        configBuilder.addFramework("Yada");
+        configBuilder.addForceLinkClass("org.yada.**");
+        configBuilder.addLib(new Lib("yada", true));
+        configBuilder.addResource(new Resource(new File(p1, "resources")));
+        configBuilder.addWeakFramework("WeakYada");
+        configBuilder.home(fakeHome);
+        Config config = configBuilder.build();
 
         File p1X86Root = new File(p1, "META-INF/robovm/macosx/x86");
         File p3X86Cache = config.getCacheDir(config.getClazzes().getClasspathPaths().get(2));
@@ -279,34 +278,34 @@ public class ConfigTest {
         File tmpDir = createTempDir();
         File cacheDir = new File(tmpDir, "cache");
         
-        Config.Builder builder = new Config.Builder();
-        builder.tmpDir(tmpDir);
-        builder.cacheDir(cacheDir);
-        builder.os(OS.macosx);
-        builder.arch(Arch.x86);
-        builder.targetType(ConsoleTarget.TYPE);
-        builder.mainClass("Main");
-        builder.addBootClasspathEntry(new File(tmpDir, "bcp1"));
-        builder.addBootClasspathEntry(new File(tmpDir, "bcp2"));
-        builder.addBootClasspathEntry(new File(tmpDir, "bcp3"));
-        builder.addClasspathEntry(new File(tmpDir, "cp1"));
-        builder.addClasspathEntry(new File(tmpDir, "cp2"));
-        builder.addClasspathEntry(new File(tmpDir, "cp3"));
-        builder.addExportedSymbol("YADA*");
-        builder.addFrameworkPath(new File(tmpDir, "yada"));
-        builder.addFramework("Yada");
-        builder.addForceLinkClass("org.yada.**");
-        builder.addLib(new Lib("yada", true));
-        builder.addResource(new Resource(new File(tmpDir, "resources")));
-        builder.addWeakFramework("WeakYada");
-        builder.addPluginArgument("foo:bar=yada");
-        builder.home(fakeHome);
+        ConfigBuilder configBuilder = new ConfigBuilder();
+        configBuilder.tmpDir(tmpDir);
+        configBuilder.cacheDir(cacheDir);
+        configBuilder.os(OS.macosx);
+        configBuilder.arch(Arch.x86);
+        configBuilder.targetType(ConsoleTarget.TYPE);
+        configBuilder.mainClass("Main");
+        configBuilder.addBootClasspathEntry(new File(tmpDir, "bcp1"));
+        configBuilder.addBootClasspathEntry(new File(tmpDir, "bcp2"));
+        configBuilder.addBootClasspathEntry(new File(tmpDir, "bcp3"));
+        configBuilder.addClasspathEntry(new File(tmpDir, "cp1"));
+        configBuilder.addClasspathEntry(new File(tmpDir, "cp2"));
+        configBuilder.addClasspathEntry(new File(tmpDir, "cp3"));
+        configBuilder.addExportedSymbol("YADA*");
+        configBuilder.addFrameworkPath(new File(tmpDir, "yada"));
+        configBuilder.addFramework("Yada");
+        configBuilder.addForceLinkClass("org.yada.**");
+        configBuilder.addLib(new Lib("yada", true));
+        configBuilder.addResource(new Resource(new File(tmpDir, "resources")));
+        configBuilder.addWeakFramework("WeakYada");
+        configBuilder.addPluginArgument("foo:bar=yada");
+        configBuilder.home(fakeHome);
 
-        Config config = builder.build();
+        Config config = configBuilder.build();
         
-        Builder builder2 = config.builder();
-        builder2.arch(Arch.arm64);
-        Config config2 = builder2.build();
+        ConfigBuilder configBuilder2 = config.builder();
+        configBuilder2.arch(Arch.arm64);
+        Config config2 = configBuilder2.build();
         
         assertNotSame(config, config2);
         assertEquals(config.getTmpDir(), config2.getTmpDir());

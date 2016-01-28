@@ -24,7 +24,7 @@ import aura.compiler.Linker;
 import aura.compiler.ModuleBuilder;
 import aura.compiler.clazz.Clazz;
 import aura.compiler.config.Config;
-import aura.compiler.config.Config.Builder;
+import aura.compiler.config.ConfigBuilder;
 import aura.compiler.llvm.Function;
 
 import soot.SootClass;
@@ -42,11 +42,11 @@ public abstract class CompilerPlugin extends Plugin {
      * passed {@link Config} may not have been set at the time of the call to
      * this method.
      * 
-     * @param builder the {@link Builder}
+     * @param configBuilder the {@link ConfigBuilder}
      * @param config the not yet built {@link Config}. Can be used to get
-     *            configuration set on the {@link Builder} so far.
+     *            configuration set on the {@link ConfigBuilder} so far.
      */
-    public abstract void beforeConfig(Builder builder, Config config) throws IOException;
+    public abstract void beforeConfig(ConfigBuilder configBuilder, Config config) throws IOException;
 
     /**
      * Called just before a class is about to be compiled. Modifications to the

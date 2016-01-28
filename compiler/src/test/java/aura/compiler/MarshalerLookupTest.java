@@ -21,6 +21,7 @@ import aura.compiler.MarshalerLookup.Marshaler;
 import aura.compiler.clazz.Clazz;
 import aura.compiler.config.Config;
 import aura.compiler.config.Config.Home;
+import aura.compiler.config.ConfigBuilder;
 import aura.compiler.log.Logger;
 import aura.rt.bro.ArrayMarshalers;
 import aura.rt.bro.MarshalerFlags;
@@ -58,17 +59,17 @@ public class MarshalerLookupTest {
                 ":" + System.getProperty("java.class.path"));
         Scene.v().loadNecessaryClasses();
         
-        Config.Builder configBuilder = new Config.Builder();
+        ConfigBuilder configConfigBuilder = new ConfigBuilder();
         for (String p : System.getProperty("sun.boot.class.path").split(File.pathSeparator)) {
-            configBuilder.addBootClasspathEntry(new File(p));
+            configConfigBuilder.addBootClasspathEntry(new File(p));
         }
         for (String p : System.getProperty("java.class.path").split(File.pathSeparator)) {
-            configBuilder.addClasspathEntry(new File(p));
+            configConfigBuilder.addClasspathEntry(new File(p));
         }
-        configBuilder.skipInstall(true);
-        configBuilder.skipLinking(true);
-        configBuilder.home(new MockHome(new File(System.getProperty("java.io.tmpdir"))));
-        configBuilder.logger(new Logger() {
+        configConfigBuilder.skipInstall(true);
+        configConfigBuilder.skipLinking(true);
+        configConfigBuilder.home(new MockHome(new File(System.getProperty("java.io.tmpdir"))));
+        configConfigBuilder.logger(new Logger() {
             public void warn(String format, Object... args) {
                 System.out.format("WARN: " + format, args);
                 System.out.println();
@@ -86,7 +87,7 @@ public class MarshalerLookupTest {
                 System.out.println();
             }
         });
-        config = configBuilder.build();
+        config = configConfigBuilder.build();
     }
     
     private Clazz toClazz(Class<?> cls) {

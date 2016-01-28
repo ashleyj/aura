@@ -39,11 +39,6 @@ import org.simpleframework.xml.ElementList;
 import org.simpleframework.xml.Root;
 import org.simpleframework.xml.Serializer;
 import org.simpleframework.xml.convert.Converter;
-import org.simpleframework.xml.convert.Registry;
-import org.simpleframework.xml.convert.RegistryStrategy;
-import org.simpleframework.xml.core.Persister;
-import org.simpleframework.xml.filter.PlatformFilter;
-import org.simpleframework.xml.stream.Format;
 import org.simpleframework.xml.stream.InputNode;
 import org.simpleframework.xml.stream.OutputNode;
 
@@ -80,85 +75,85 @@ public class Config {
     };
 
     @Element(required = false)
-    private File installDir = null;
+    protected File installDir = null;
     @Element(required = false)
-    private String executableName = null;
+    protected String executableName = null;
     @Element(required = false)
-    private String imageName = null;
+    protected String imageName = null;
     @Element(required = false)
-    private Boolean useDynamicJni = null;
+    protected Boolean useDynamicJni = null;
     @Element(required = false)
-    private Boolean skipRuntimeLib = null;
+    protected Boolean skipRuntimeLib = null;
     @Element(required = false)
-    private File mainJar;
+    protected File mainJar;
     @Element(required = false)
-    private String mainClass;
+    protected String mainClass;
     @Element(required = false)
-    private Cacerts cacerts = null;
+    protected Cacerts cacerts = null;
     @Element(required = false)
-    private OS os = null;
+    protected OS os = null;
     @ElementList(required = false, inline = true)
-    private ArrayList<Arch> archs = null;
+    protected ArrayList<Arch> archs = null;
     @ElementList(required = false, entry = "root")
-    private ArrayList<String> roots;
+    protected ArrayList<String> roots;
     @ElementList(required = false, entry = "pattern")
-    private ArrayList<String> forceLinkClasses;
+    protected ArrayList<String> forceLinkClasses;
     @ElementList(required = false, entry = "lib")
-    private ArrayList<Lib> libs;
+    protected ArrayList<Lib> libs;
     @ElementList(required = false, entry = "symbol")
-    private ArrayList<String> exportedSymbols;
+    protected ArrayList<String> exportedSymbols;
     @ElementList(required = false, entry = "symbol")
-    private ArrayList<String> unhideSymbols;
+    protected ArrayList<String> unhideSymbols;
     @ElementList(required = false, entry = "framework")
-    private ArrayList<String> frameworks;
+    protected ArrayList<String> frameworks;
     @ElementList(required = false, entry = "framework")
-    private ArrayList<String> weakFrameworks;
+    protected ArrayList<String> weakFrameworks;
     @ElementList(required = false, entry = "path")
-    private ArrayList<File> frameworkPaths;
+    protected ArrayList<File> frameworkPaths;
     @ElementList(required = false, entry = "resource")
-    private ArrayList<Resource> resources;
+    protected ArrayList<Resource> resources;
     @ElementList(required = false, entry = "classpathentry")
-    private ArrayList<File> bootclasspath;
+    protected ArrayList<File> bootclasspath;
     @ElementList(required = false, entry = "classpathentry")
-    private ArrayList<File> classpath;
+    protected ArrayList<File> classpath;
     @ElementList(required = false, entry = "argument")
-    private ArrayList<String> pluginArguments;
+    protected ArrayList<String> pluginArguments;
     @Element(required = false, name = "target")
-    private String targetType;
+    protected String targetType;
     @Element(required = false, name = "treeShaker")
-    private TreeShakerMode treeShakerMode;
+    protected TreeShakerMode treeShakerMode;
     @Element(required = false)
-    private String iosSdkVersion;
+    protected String iosSdkVersion;
     @Element(required = false, name = "iosInfoPList")
-    private File iosInfoPListFile = null;
+    protected File iosInfoPListFile = null;
     @Element(required = false, name = "infoPList")
-    private File infoPListFile = null;
+    protected File infoPListFile = null;
     @Element(required = false)
-    private File iosEntitlementsPList;
+    protected File iosEntitlementsPList;
 
     @Element(required = false)
-    private Tools tools;
+    protected Tools tools;
 
-    private String iosDeviceType;
-    private InfoPList infoPList;
+    protected String iosDeviceType;
+    protected InfoPList infoPList;
 
-    private boolean iosSkipSigning = false;
+    protected boolean iosSkipSigning = false;
 
-    private Properties properties = new Properties();
+    protected Properties properties = new Properties();
 
-    private Home home = null;
-    private File tmpDir;
-    private File cacheDir = new File(System.getProperty("user.home"), ".aura/cache");
-    private File ccBinPath = null;
+    protected Home home = null;
+    protected File tmpDir;
+    protected File cacheDir = new File(System.getProperty("user.home"), ".aura/cache");
+    protected File ccBinPath = null;
 
-    private boolean clean = false;
-    private boolean debug = false;
-    private boolean useDebugLibs = false;
-    private boolean skipLinking = false;
-    private boolean skipInstall = false;
-    private boolean dumpIntermediates = false;
-    private int threads = Runtime.getRuntime().availableProcessors();
-    private Logger logger = Logger.NULL_LOGGER;
+    protected boolean clean = false;
+    protected boolean debug = false;
+    protected boolean useDebugLibs = false;
+    protected boolean skipLinking = false;
+    protected boolean skipInstall = false;
+    protected boolean dumpIntermediates = false;
+    protected int threads = Runtime.getRuntime().availableProcessors();
+    protected Logger logger = Logger.NULL_LOGGER;
 
     /*
      * The fields below are all initialized in build() and must not be included
@@ -166,19 +161,19 @@ public class Config {
      * the builder() method skip them.
      */
 
-    private transient List<Plugin> plugins = new ArrayList<>();
-    private transient Target target = null;
-    private transient File osArchDepLibDir;
-    private transient File osArchCacheDir;
-    private transient Clazzes clazzes;
-    private transient VTable.Cache vtableCache;
-    private transient ITable.Cache itableCache;
-    private transient List<Path> resourcesPaths = new ArrayList<Path>();
-    private transient DataLayout dataLayout;
-    private transient MarshalerLookup marshalerLookup;
-    private transient Config configBeforeBuild;
-    private transient DependencyGraph dependencyGraph;
-    private transient Arch sliceArch;
+    protected transient List<Plugin> plugins = new ArrayList<>();
+    protected transient Target target = null;
+    protected transient File osArchDepLibDir;
+    protected transient File osArchCacheDir;
+    protected transient Clazzes clazzes;
+    protected transient VTable.Cache vtableCache;
+    protected transient ITable.Cache itableCache;
+    protected transient List<Path> resourcesPaths = new ArrayList<Path>();
+    protected transient DataLayout dataLayout;
+    protected transient MarshalerLookup marshalerLookup;
+    protected transient Config configBeforeBuild;
+    protected transient DependencyGraph dependencyGraph;
+    protected transient Arch sliceArch;
 
     protected Config() throws IOException {
         // Add standard plugins
@@ -190,11 +185,11 @@ public class Config {
     }
 
     /**
-     * Returns a new {@link Builder} which builds exactly this {@link Config}
-     * when {@link Builder#build()} is called.
+     * Returns a new {@link ConfigBuilder} which builds exactly this {@link Config}
+     * when {@link ConfigBuilder#build()} is called.
      */
-    public Builder builder() throws IOException {
-        return new Builder(clone(configBeforeBuild));
+    public ConfigBuilder builder() throws IOException {
+        return new ConfigBuilder(clone(configBeforeBuild));
     }
 
     public Home getHome() {
@@ -666,9 +661,9 @@ public class Config {
             for (String dir : dirs) {
                 if (path.contains(dir + "/robovm.xml")) {
                     File configXml = new File(new File(extractIfNeeded(path), dir), "robovm.xml");
-                    Builder builder = new Builder();
-                    builder.read(configXml);
-                    mergeConfig(builder.config, config);
+                    ConfigBuilder configBuilder = new ConfigBuilder();
+                    configBuilder.read(configXml);
+                    mergeConfig(configBuilder.config, config);
                     break;
                 }
             }
@@ -729,7 +724,7 @@ public class Config {
         return clone;
     }
 
-    private Config build() throws IOException {
+    protected Config build() throws IOException {
         // Create a clone of this Config before we have done anything with it so
         // that builder() has a fresh Config it can use.
         this.configBeforeBuild = clone(this);
@@ -863,7 +858,11 @@ public class Config {
 
         protected Home(File homeDir, boolean validate) {
             if (validate) {
-                validate(homeDir);
+                try {
+                    validate(homeDir);
+                } catch (IllegalArgumentException iae) {
+                    iae.printStackTrace();
+                }
             }
             binDir = new File(homeDir, "bin");
             libVmDir = new File(homeDir, "lib/vm");
@@ -937,7 +936,7 @@ public class Config {
                     + "installation found in " + candidates);
         }
 
-        public static void validate(File dir) {
+        public static void validate(File dir) throws IllegalArgumentException {
             String error = "Path " + dir + " is not a valid Aura install directory: ";
             // Check for required dirs and match the compiler version with our
             // version.
@@ -1019,565 +1018,6 @@ public class Config {
         }
     }
 
-    public static class Builder {
-        final Config config;
-
-        Builder(Config config) {
-            this.config = config;
-        }
-
-        public Builder() throws IOException {
-            this.config = new Config();
-        }
-
-        public Builder os(OS os) {
-            config.os = os;
-            return this;
-        }
-
-        public Builder arch(Arch arch) {
-            return archs(arch);
-        }
-
-        public Builder archs(Arch ... archs) {
-            return archs(Arrays.asList(archs));
-        }
-
-        public Builder archs(List<Arch> archs) {
-            if (config.archs == null) {
-                config.archs = new ArrayList<>();
-            }
-            config.archs.clear();
-            config.archs.addAll(archs);
-            return this;
-        }
-
-        public Builder clearClasspathEntries() {
-            if (config.classpath != null) {
-                config.classpath.clear();
-            }
-            return this;
-        }
-
-        public Builder addClasspathEntry(File f) {
-            if (config.classpath == null) {
-                config.classpath = new ArrayList<File>();
-            }
-            config.classpath.add(f);
-            return this;
-        }
-
-        public Builder clearBootClasspathEntries() {
-            if (config.bootclasspath != null) {
-                config.bootclasspath.clear();
-            }
-            return this;
-        }
-
-        public Builder addBootClasspathEntry(File f) {
-            if (config.bootclasspath == null) {
-                config.bootclasspath = new ArrayList<File>();
-            }
-            config.bootclasspath.add(f);
-            return this;
-        }
-
-        public Builder mainJar(File f) {
-            config.mainJar = f;
-            return this;
-        }
-
-        public Builder installDir(File installDir) {
-            config.installDir = installDir;
-            return this;
-        }
-
-        public Builder executableName(String executableName) {
-            config.executableName = executableName;
-            return this;
-        }
-
-        public Builder imageName(String imageName) {
-            config.imageName = imageName;
-            return this;
-        }
-
-        public Builder home(Home home) {
-            config.home = home;
-            return this;
-        }
-
-        public Builder cacheDir(File cacheDir) {
-            config.cacheDir = cacheDir;
-            return this;
-        }
-
-        public Builder clean(boolean b) {
-            config.clean = b;
-            return this;
-        }
-
-        public Builder ccBinPath(File ccBinPath) {
-            config.ccBinPath = ccBinPath;
-            return this;
-        }
-
-        public Builder debug(boolean b) {
-            config.debug = b;
-            return this;
-        }
-
-        public Builder useDebugLibs(boolean b) {
-            config.useDebugLibs = b;
-            return this;
-        }
-
-        public Builder dumpIntermediates(boolean b) {
-            config.dumpIntermediates = b;
-            return this;
-        }
-
-        public Builder skipRuntimeLib(boolean b) {
-            config.skipRuntimeLib = b;
-            return this;
-        }
-
-        public Builder skipLinking(boolean b) {
-            config.skipLinking = b;
-            return this;
-        }
-
-        public Builder skipInstall(boolean b) {
-            config.skipInstall = b;
-            return this;
-        }
-
-        public Builder useDynamicJni(boolean b) {
-            config.useDynamicJni = b;
-            return this;
-        }
-
-        public Builder threads(int threads) {
-            config.threads = threads;
-            return this;
-        }
-
-        public Builder mainClass(String mainClass) {
-            config.mainClass = mainClass;
-            return this;
-        }
-
-        public Builder tmpDir(File tmpDir) {
-            config.tmpDir = tmpDir;
-            return this;
-        }
-
-        public Builder logger(Logger logger) {
-            config.logger = logger;
-            return this;
-        }
-
-        public Builder treeShakerMode(TreeShakerMode treeShakerMode) {
-            config.treeShakerMode = treeShakerMode;
-            return this;
-        }
-
-        public Builder clearForceLinkClasses() {
-            if (config.forceLinkClasses != null) {
-                config.forceLinkClasses.clear();
-            }
-            return this;
-        }
-
-        public Builder addForceLinkClass(String pattern) {
-            if (config.forceLinkClasses == null) {
-                config.forceLinkClasses = new ArrayList<String>();
-            }
-            config.forceLinkClasses.add(pattern);
-            return this;
-        }
-
-        public Builder clearExportedSymbols() {
-            if (config.exportedSymbols != null) {
-                config.exportedSymbols.clear();
-            }
-            return this;
-        }
-
-        public Builder addExportedSymbol(String symbol) {
-            if (config.exportedSymbols == null) {
-                config.exportedSymbols = new ArrayList<String>();
-            }
-            config.exportedSymbols.add(symbol);
-            return this;
-        }
-
-        public Builder clearUnhideSymbols() {
-            if (config.unhideSymbols != null) {
-                config.unhideSymbols.clear();
-            }
-            return this;
-        }
-
-        public Builder addUnhideSymbol(String symbol) {
-            if (config.unhideSymbols == null) {
-                config.unhideSymbols = new ArrayList<String>();
-            }
-            config.unhideSymbols.add(symbol);
-            return this;
-        }
-
-        public Builder clearLibs() {
-            if (config.libs != null) {
-                config.libs.clear();
-            }
-            return this;
-        }
-
-        public Builder addLib(Lib lib) {
-            if (config.libs == null) {
-                config.libs = new ArrayList<Lib>();
-            }
-            config.libs.add(lib);
-            return this;
-        }
-
-        public Builder clearFrameworks() {
-            if (config.frameworks != null) {
-                config.frameworks.clear();
-            }
-            return this;
-        }
-
-        public Builder addFramework(String framework) {
-            if (config.frameworks == null) {
-                config.frameworks = new ArrayList<String>();
-            }
-            config.frameworks.add(framework);
-            return this;
-        }
-
-        public Builder clearWeakFrameworks() {
-            if (config.weakFrameworks != null) {
-                config.weakFrameworks.clear();
-            }
-            return this;
-        }
-
-        public Builder addWeakFramework(String framework) {
-            if (config.weakFrameworks == null) {
-                config.weakFrameworks = new ArrayList<String>();
-            }
-            config.weakFrameworks.add(framework);
-            return this;
-        }
-
-        public Builder clearFrameworkPaths() {
-            if (config.frameworkPaths != null) {
-                config.frameworkPaths.clear();
-            }
-            return this;
-        }
-
-        public Builder addFrameworkPath(File frameworkPath) {
-            if (config.frameworkPaths == null) {
-                config.frameworkPaths = new ArrayList<File>();
-            }
-            config.frameworkPaths.add(frameworkPath);
-            return this;
-        }
-
-        public Builder clearResources() {
-            if (config.resources != null) {
-                config.resources.clear();
-            }
-            return this;
-        }
-
-        public Builder addResource(Resource resource) {
-            if (config.resources == null) {
-                config.resources = new ArrayList<Resource>();
-            }
-            config.resources.add(resource);
-            return this;
-        }
-
-        public Builder targetType(String targetType) {
-            config.targetType = targetType;
-            return this;
-        }
-
-        public Builder clearProperties() {
-            config.properties.clear();
-            return this;
-        }
-
-        public Builder addProperties(Properties properties) {
-            config.properties.putAll(properties);
-            return this;
-        }
-
-        public Builder addProperties(File file) throws IOException {
-            Properties props = new Properties();
-            Reader reader = null;
-            try {
-                reader = new InputStreamReader(new FileInputStream(file), "utf-8");
-                props.load(reader);
-                addProperties(props);
-            } finally {
-                IOUtils.closeQuietly(reader);
-            }
-            return this;
-        }
-
-        public Builder addProperty(String name, String value) {
-            config.properties.put(name, value);
-            return this;
-        }
-
-        public Builder cacerts(Cacerts cacerts) {
-            config.cacerts = cacerts;
-            return this;
-        }
-
-        public Builder tools(Tools tools) {
-            config.tools = tools;
-            return this;
-        }
-
-        public Builder iosSdkVersion(String sdkVersion) {
-            config.iosSdkVersion = sdkVersion;
-            return this;
-        }
-
-        public Builder iosDeviceType(String deviceType) {
-            config.iosDeviceType = deviceType;
-            return this;
-        }
-
-        public Builder iosInfoPList(File infoPList) {
-            config.iosInfoPListFile = infoPList;
-            return this;
-        }
-
-        public Builder infoPList(File infoPList) {
-            config.infoPListFile = infoPList;
-            return this;
-        }
-
-        public Builder iosSkipSigning(boolean b) {
-            config.iosSkipSigning = b;
-            return this;
-        }
-
-        public Builder addCompilerPlugin(CompilerPlugin compilerPlugin) {
-            config.plugins.add(compilerPlugin);
-            return this;
-        }
-
-        public Builder addLaunchPlugin(LaunchPlugin plugin) {
-            config.plugins.add(plugin);
-            return this;
-        }
-
-        public Builder addTargetPlugin(TargetPlugin plugin) {
-            config.plugins.add(plugin);
-            return this;
-        }
-
-        public void addPluginArgument(String argName) {
-            if (config.pluginArguments == null) {
-                config.pluginArguments = new ArrayList<>();
-            }
-            config.pluginArguments.add(argName);
-        }
-
-        public Config build() throws IOException {
-            for (CompilerPlugin plugin : config.getCompilerPlugins()) {
-                plugin.beforeConfig(this, config);
-            }
-
-            return config.build();
-        }
-
-        /**
-         * Reads properties from a project basedir. If {@code isTest} is
-         * {@code true} this method will first attempt to load a
-         * {@code robovm.test.properties} file in {@code basedir}.
-         * <p>
-         * If no test specific file is found or if {@code isTest} is
-         * {@code false} this method attempts to load a
-         * {@code robovm.properties} and a {@code robovm.local.properties} file
-         * in {@code basedir} and merges them so that properties from the local
-         * file (if it exists) override properties in the non-local file.
-         * <p>
-         * If {@code isTest} is {@code true} and no test specific properties
-         * file was found this method will append {@code Test} to the
-         * {@code app.id} and {@code app.name} properties (if they exist).
-         * <p>
-         * If none of the files can be found found this method does nothing.
-         */
-        public void readProjectProperties(File basedir, boolean isTest) throws IOException {
-            File testPropsFile = new File(basedir, "robovm.test.properties");
-            File localPropsFile = new File(basedir, "robovm.local.properties");
-            File propsFile = new File(basedir, "robovm.properties");
-            if (isTest && testPropsFile.exists()) {
-                config.logger.info("Loading test RoboVM config properties file: "
-                        + testPropsFile.getAbsolutePath());
-                addProperties(testPropsFile);
-            } else {
-                Properties props = new Properties();
-                if (propsFile.exists()) {
-                    config.logger.info("Loading default RoboVM config properties file: "
-                            + propsFile.getAbsolutePath());
-                    try (Reader reader = new InputStreamReader(new FileInputStream(propsFile), "utf-8")) {
-                        props.load(reader);
-                    }
-                }
-                if (localPropsFile.exists()) {
-                    config.logger.info("Loading local RoboVM config properties file: "
-                            + localPropsFile.getAbsolutePath());
-                    try (Reader reader = new InputStreamReader(new FileInputStream(localPropsFile), "utf-8")) {
-                        props.load(reader);
-                    }
-                }
-                if (isTest) {
-                    modifyPropertyForTest(props, "app.id");
-                    modifyPropertyForTest(props, "app.name");
-                    modifyPropertyForTest(props, "app.executable");
-                }
-                addProperties(props);
-            }
-        }
-
-        private void modifyPropertyForTest(Properties props, String propName) {
-            String propValue = props.getProperty(propName);
-            if (propValue != null && !propValue.endsWith("Test")) {
-                String newPropValue = propValue + "Test";
-                config.logger.info("Changing %s property from '%s' to '%s'", propName, propValue, newPropValue);
-                props.setProperty(propName, newPropValue);
-            }
-        }
-
-        /**
-         * Reads a config file from a project basedir. If {@code isTest} is
-         * {@code true} this method will first attempt to load a
-         * {@code robovm.test.xml} file in {@code basedir}.
-         * <p>
-         * If no test-specific file is found or if {@code isTest} is
-         * {@code false} this method attempts to load a {@code robovm.xml} file
-         * in {@code basedir}.
-         * <p>
-         * If none of the files can be found found this method does nothing.
-         */
-        public void readProjectConfig(File basedir, boolean isTest) throws IOException {
-            File testConfigFile = new File(basedir, "robovm.test.xml");
-            File configFile = new File(basedir, "robovm.xml");
-            if (isTest && testConfigFile.exists()) {
-                config.logger.info("Loading test RoboVM config file: "
-                        + testConfigFile.getAbsolutePath());
-                read(testConfigFile);
-            } else if (configFile.exists()) {
-                config.logger.info("Loading default RoboVM config file: "
-                        + configFile.getAbsolutePath());
-                read(configFile);
-            }
-        }
-
-        public void read(File file) throws IOException {
-            Reader reader = null;
-            try {
-                reader = new InputStreamReader(new FileInputStream(file), "utf-8");
-                read(reader, file.getAbsoluteFile().getParentFile());
-            } finally {
-                IOUtils.closeQuietly(reader);
-            }
-        }
-
-        public void read(Reader reader, File wd) throws IOException {
-            try {
-                Serializer serializer = createSerializer(wd);
-                serializer.read(config, reader);
-            } catch (IOException e) {
-                throw e;
-            } catch (RuntimeException e) {
-                throw e;
-            } catch (Exception e) {
-                throw (IOException) new IOException().initCause(e);
-            }
-            // <roots> was renamed to <forceLinkClasses> but we still support
-            // <roots>. We need to copy <roots> to <forceLinkClasses> and set
-            // <roots> to null.
-            if (config.roots != null && !config.roots.isEmpty()) {
-                if (config.forceLinkClasses == null) {
-                    config.forceLinkClasses = new ArrayList<String>();
-                }
-                config.forceLinkClasses.addAll(config.roots);
-                config.roots = null;
-            }
-        }
-
-        public void write(File file) throws IOException {
-            Writer writer = null;
-            try {
-                writer = new OutputStreamWriter(new FileOutputStream(file), "utf-8");
-                write(writer, file.getAbsoluteFile().getParentFile());
-            } finally {
-                IOUtils.closeQuietly(writer);
-            }
-        }
-
-        public void write(Writer writer, File wd) throws IOException {
-            try {
-                Serializer serializer = createSerializer(wd);
-                serializer.write(config, writer);
-            } catch (IOException e) {
-                throw e;
-            } catch (RuntimeException e) {
-                throw e;
-            } catch (Exception e) {
-                throw (IOException) new IOException().initCause(e);
-            }
-        }
-
-        private Serializer createSerializer(final File wd) throws Exception {
-            RelativeFileConverter fileConverter = new RelativeFileConverter(wd);
-
-            Serializer resourceSerializer = new Persister(
-                    new RegistryStrategy(new Registry().bind(File.class, fileConverter)),
-                    new PlatformFilter(config.properties), new Format(2));
-
-            Registry registry = new Registry();
-            RegistryStrategy registryStrategy = new RegistryStrategy(registry);
-            Serializer serializer = new Persister(registryStrategy,
-                    new PlatformFilter(config.properties), new Format(2));
-
-            registry.bind(File.class, fileConverter);
-            registry.bind(Lib.class, new RelativeLibConverter(fileConverter));
-            registry.bind(Resource.class, new ResourceConverter(fileConverter, resourceSerializer));
-
-            return serializer;
-        }
-
-        /**
-         * Fetches the {@link PluginArgument}s of all registered plugins for
-         * parsing.
-         */
-        public Map<String, PluginArgument> fetchPluginArguments() {
-            Map<String, PluginArgument> args = new TreeMap<>();
-            for (Plugin plugin : config.plugins) {
-                for (PluginArgument arg : plugin.getArguments().getArguments()) {
-                    args.put(plugin.getArguments().getPrefix() + ":" + arg.getName(), arg);
-                }
-            }
-            return args;
-        }
-
-        public List<Plugin> getPlugins() {
-            return config.getPlugins();
-        }
-    }
-
     public static final class Lib {
         private final String value;
         private final boolean force;
@@ -1635,7 +1075,7 @@ public class Config {
         }
     }
 
-    private static final class RelativeLibConverter implements Converter<Lib> {
+    protected static final class RelativeLibConverter implements Converter<Lib> {
         private final RelativeFileConverter fileConverter;
 
         public RelativeLibConverter(RelativeFileConverter fileConverter) {
@@ -1672,7 +1112,7 @@ public class Config {
         }
     }
 
-    private static final class RelativeFileConverter implements Converter<File> {
+    protected static final class RelativeFileConverter implements Converter<File> {
         private final String wdPrefix;
 
         public RelativeFileConverter(File wd) {
@@ -1720,7 +1160,7 @@ public class Config {
         }
     }
 
-    private static final class ResourceConverter implements Converter<Resource> {
+    protected static final class ResourceConverter implements Converter<Resource> {
         private final RelativeFileConverter fileConverter;
         private final Serializer serializer;
 

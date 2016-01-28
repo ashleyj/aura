@@ -25,7 +25,7 @@ import aura.compiler.Linker;
 import aura.compiler.ModuleBuilder;
 import aura.compiler.clazz.Clazz;
 import aura.compiler.config.Config;
-import aura.compiler.config.Config.Builder;
+import aura.compiler.config.ConfigBuilder;
 import aura.compiler.llvm.Function;
 
 import soot.SootMethod;
@@ -41,7 +41,7 @@ public abstract class AbstractCompilerPlugin extends CompilerPlugin {
     }
 
     @Override
-    public void beforeConfig(Builder builder, Config config) throws IOException {}
+    public void beforeConfig(ConfigBuilder configBuilder, Config config) throws IOException {}
 
     @Override
     public void beforeClass(Config config, Clazz clazz, ModuleBuilder moduleBuilder)
