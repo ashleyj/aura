@@ -388,7 +388,7 @@ public class ConfigBuilderArgParser extends ArgParser<ConfigBuilder> {
     @Override
     public void usage(Options options) {
         HelpFormatter formatter = new HelpFormatter();
-        formatter.printHelp( "aura", options );
+        formatter.printHelp( "aura [args] mainClass", options );
     }
 
     public ConfigBuilder setLibs(ConfigBuilder configBuilder, List<String> values) {
