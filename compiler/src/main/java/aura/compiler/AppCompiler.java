@@ -339,11 +339,11 @@ public class AppCompiler {
             argParser.validate();
             if (!argParser.validateArgs(argParser.getCmd())) {
                 argParser.usage(CommandArgs.options());
-                System.exit(1);
+                return;
             }
         } catch (IllegalArgumentException iae) {
             System.err.println(iae.getMessage());
-            System.exit(1);
+            return;
         } catch (ParseException e) {
             System.out.println("Error processing options -- this is a bug. Please report");
             e.printStackTrace();
