@@ -1,9 +1,6 @@
 package aura.compiler;
 
-import aura.compiler.config.Arch;
-import aura.compiler.config.Config;
-import aura.compiler.config.ConfigBuilder;
-import aura.compiler.config.OS;
+import aura.compiler.config.*;
 import aura.compiler.target.ConsoleTarget;
 import org.apache.commons.cli.*;
 import org.junit.Assume;
@@ -18,9 +15,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /*
@@ -291,6 +290,17 @@ public class ConfigBuilderArgParserTest {
 
         cmd = commandLineParser.parse( options, new String[]{"-c", "/tmp/classPath"});
         assert(configBuilderArgParser.validateArgs(cmd));
+    }
+
+    @Test
+    public void testSetResources() throws IOException {
+        String invalidFile = "/tmp/doesntexist";
+        configBuilder = configBuilderArgParser.setResources(configBuilder, Collections.singletonList(invalidFile));
+        assertFalse(configBuilder.getConfig().getResources().contains(new Resource(new File(invalidFile))));
+
+        File testFile = folder.newFile("testFile");
+        configBuilder = configBuilderArgParser.setResources(configBuilder, Collections.singletonList(testFile.getAbsolutePath()));
+        assert(configBuilder.getConfig().getResources().contains(new Resource(testFile)));
     }
 
 }

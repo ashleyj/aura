@@ -44,6 +44,8 @@ public class CommandArgs {
     public static final String OUT_BIN_LONG = "out";
     public static final String PROPERTIES = "p";
     public static final String PROPERTIES_LONG = "properties";
+    public static final String RESOURCES = "r";
+    public static final String RESOURCES_LONG = "resources";
     public static final String RUN = "run";
     public static final String TEMP = "t";
     public static final String TEMP_LONG = "tmp";
@@ -227,6 +229,13 @@ public class CommandArgs {
                 .required(false)
                 .desc("Properties [key=value]. Valid properties: os, arch, cpu,target")
                 .longOpt(PROPERTIES_LONG)
+                .hasArgs()
+                .build());
+
+        options.addOption(Option.builder(RESOURCES)
+                .required(false)
+                .desc("Add resource to bundled jar")
+                .longOpt(RESOURCES_LONG)
                 .hasArgs()
                 .build());
 

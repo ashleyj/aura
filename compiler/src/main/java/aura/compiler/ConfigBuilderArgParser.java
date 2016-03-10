@@ -144,6 +144,10 @@ public class ConfigBuilderArgParser extends ArgParser<ConfigBuilder> {
             case PROPERTIES_LONG:
                 return setProperties(configBuilder, option.getValuesList());
 
+            case RESOURCES:
+                 RESOURCES_LONG:
+                 return setResources(configBuilder, option.getValuesList());
+
             case TREESHAKE:
             case TREESHAKE_LONG:
                 return setTreeshake(configBuilder, option.getValue());
@@ -181,6 +185,18 @@ public class ConfigBuilderArgParser extends ArgParser<ConfigBuilder> {
                 break;
         }
 
+        return configBuilder;
+    }
+
+    public ConfigBuilder setResources(ConfigBuilder configBuilder, List<String> values) {
+        Optional.ofNullable(values).ifPresent(l -> l.forEach(value -> {
+            File resourceFile = new File(value);
+            if (!resourceFile.exists()) {
+                System.err.println("Resource file " + resourceFile + " does not exist, skipping");
+            } else {
+                configBuilder.addResource(new Resource(new File(value)));
+            }
+        }));
         return configBuilder;
     }
 
