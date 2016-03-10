@@ -145,7 +145,7 @@ public class ConfigBuilderArgParser extends ArgParser<ConfigBuilder> {
                 return setProperties(configBuilder, option.getValuesList());
 
             case RESOURCES:
-                 RESOURCES_LONG:
+            case RESOURCES_LONG:
                  return setResources(configBuilder, option.getValuesList());
 
             case TREESHAKE:

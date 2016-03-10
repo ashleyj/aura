@@ -234,7 +234,7 @@ public class CommandArgs {
 
         options.addOption(Option.builder(RESOURCES)
                 .required(false)
-                .desc("Add resource to bundled jar")
+                .desc("Add resource to application bundle")
                 .longOpt(RESOURCES_LONG)
                 .hasArgs()
                 .build());
