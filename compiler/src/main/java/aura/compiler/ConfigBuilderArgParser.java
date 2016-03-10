@@ -194,7 +194,7 @@ public class ConfigBuilderArgParser extends ArgParser<ConfigBuilder> {
             if (!resourceFile.exists()) {
                 System.err.println("Resource file " + resourceFile + " does not exist, skipping");
             } else {
-                configBuilder.addResource(new Resource(new File(value)));
+                configBuilder.addResource(new Resource(resourceFile));
             }
         }));
         return configBuilder;
