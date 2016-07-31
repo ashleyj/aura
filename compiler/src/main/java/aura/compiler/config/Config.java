@@ -65,6 +65,7 @@ public class Config {
      * very long class names for auto-generated classes. See #955.
      */
     private static final int MAX_FILE_NAME_LENGTH = 255;
+    public boolean verbose;
 
     public enum Cacerts {
         full
@@ -74,6 +75,10 @@ public class Config {
         none, conservative, aggressive
     };
 
+    @Element(required = false)
+    protected Boolean archive = null;
+    @Element(required = false)
+    protected Boolean buildAsLib = null;
     @Element(required = false)
     protected File installDir = null;
     @Element(required = false)
@@ -96,6 +101,8 @@ public class Config {
     protected ArrayList<Arch> archs = null;
     @ElementList(required = false, entry = "root")
     protected ArrayList<String> roots;
+    @ElementList(required = false, entry = "runArgs")
+    protected ArrayList<String> runArgs;
     @ElementList(required = false, entry = "pattern")
     protected ArrayList<String> forceLinkClasses;
     @ElementList(required = false, entry = "lib")
@@ -265,6 +272,14 @@ public class Config {
         return dumpIntermediates;
     }
 
+    public boolean isBuildAsLib() {
+        return buildAsLib != null && buildAsLib.booleanValue();
+    }
+
+    public boolean isArchive() {
+        return archive != null && archive.booleanValue();
+    }
+
     public boolean isSkipRuntimeLib() {
         return skipRuntimeLib != null && skipRuntimeLib.booleanValue();
     }
@@ -410,6 +425,10 @@ public class Config {
             }
         }
         return targetPlugins;
+    }
+
+    public List<String> getRunArgs() {
+        return runArgs;
     }
 
     public List<Plugin> getPlugins() {

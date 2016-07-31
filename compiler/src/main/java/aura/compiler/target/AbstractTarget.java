@@ -186,6 +186,7 @@ public abstract class AbstractTarget implements Target {
 
             ccArgs.add("-Wl,-no_implicit_dylibs");
             ccArgs.add("-Wl,-dead_strip");
+
         }
         
         if (config.getOs().getFamily() == OS.Family.darwin && !config.getFrameworks().isEmpty()) {
@@ -256,7 +257,7 @@ public abstract class AbstractTarget implements Target {
     protected void doBuild(File outFile, List<String> ccArgs, List<File> objectFiles, 
             List<String> libs) throws IOException {
         
-        ToolchainUtil.link(config, ccArgs, objectFiles, libs, outFile);        
+        ToolchainUtil.link(config, ccArgs, objectFiles, libs, outFile);
     }
 
     protected String getExecutable() {

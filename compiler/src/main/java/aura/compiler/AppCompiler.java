@@ -27,6 +27,7 @@ import aura.compiler.util.AntPathMatcher;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOExceptionWithCause;
 import org.apache.commons.io.IOUtils;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
@@ -113,7 +114,7 @@ public class AppCompiler {
             classes.add(clazz);
         }
 
-        if (config.getMainClass() != null) {
+        if (config.getMainClass() != null && !config.isBuildAsLib()) {
             Clazz clazz = config.getClazzes().load(config.getMainClass().replace('.', '/'));
             if (clazz == null) {
                 throw new CompilerException("Main class " + config.getMainClass() + " not found");
@@ -309,6 +310,11 @@ public class AppCompiler {
             }
         }
 
+        if (config.isBuildAsLib()) {
+            /*TODO output compilation details */
+            return;
+        }
+
         long start = System.currentTimeMillis();
         linker.link(linkClasses);
         long duration = System.currentTimeMillis() - start;
@@ -320,13 +326,7 @@ public class AppCompiler {
         AppCompiler compiler = null;
         ConfigBuilder configBuilder = null;
 
-        boolean verbose = false;
-        boolean run = false;
-        boolean archive = false;
-        List<Arch> archs = new ArrayList<>();
-        List<String> runArgs = new ArrayList<>();
         configBuilder = new ConfigBuilder();
-        Map<String, PluginArgument> pluginArguments = configBuilder.fetchPluginArguments();
 
         ConfigBuilderArgParser argParser = new ConfigBuilderArgParser(CommandArgs.options(), args);
 
@@ -345,6 +345,47 @@ public class AppCompiler {
         }
 
         configBuilder = argParser.populateObject(configBuilder);
+        configBuilder = processArgs(configBuilder, args);
+
+        compiler = new AppCompiler(configBuilder.build());
+        boolean run = false;
+
+        try {
+            if (configBuilder.getConfig().isArchive()) {
+                compiler.build();
+                compiler.archive();
+            } else {
+                if (run && !compiler.config.getTarget().canLaunch()) {
+                    throw new IllegalArgumentException("Cannot launch when building " 
+                            + compiler.config.getTarget().getType() + " binaries");
+                }
+                if (run) {
+                    compiler.compile(); // Just compile the first slice if multiple archs have been specified
+                    LaunchParameters launchParameters = compiler.config.getTarget().createLaunchParameters();
+                    launchParameters.setArguments(configBuilder.getConfig().getRunArgs());
+                    compiler.launch(launchParameters);
+                } else if(compiler.config.isBuildAsLib()) {
+                    compiler.compile();
+                    /* output make file */
+                } else {
+                    compiler.build();
+                    compiler.config.getTarget().install();
+                }
+            }
+        } catch (Throwable t) {
+            String message = t.getMessage();
+            if (configBuilder.getConfig().verbose && !(t instanceof ExecuteException)) {
+                t.printStackTrace();
+            }
+            printAndExit(message);
+        }
+
+    }
+
+    public static ConfigBuilder processArgs(ConfigBuilder configBuilder, String[] args) throws IOException {
+        List<Arch> archs = new ArrayList<>();
+        List<String> runArgs = new ArrayList<>();
+        Map<String, PluginArgument> pluginArguments = configBuilder.fetchPluginArguments();
 
         int i = 0;
         while (i < args.length) {
@@ -366,7 +407,7 @@ public class AppCompiler {
                         configBuilder.addResource(new Resource(dir, null).include(pattern));
                     } else {
                         configBuilder.addResource(new Resource(new File(p)));
-                        }
+                    }
                 }
             } else if ("-cacerts".equals(args[i])) {
                 String name = args[++i];
@@ -380,7 +421,7 @@ public class AppCompiler {
                 }
                 configBuilder.cacerts(cacerts);
             } else if ("-archive".equals(args[i])) {
-                archive = true;
+                configBuilder.archive(true);
             } else if (args[i].startsWith("-D")) {
             } else if (args[i].startsWith("-X")) {
             } else if (args[i].startsWith("-rvm:")) {
@@ -406,36 +447,7 @@ public class AppCompiler {
         while (i < args.length) {
             runArgs.add(args[i++]);
         }
-
-        compiler = new AppCompiler(configBuilder.build());
-
-        try {
-            if (archive) {
-                compiler.build();
-                compiler.archive();
-            } else {
-                if (run && !compiler.config.getTarget().canLaunch()) {
-                    throw new IllegalArgumentException("Cannot launch when building " 
-                            + compiler.config.getTarget().getType() + " binaries");
-                }
-                if (run) {
-                    compiler.compile(); // Just compile the first slice if multiple archs have been specified
-                    LaunchParameters launchParameters = compiler.config.getTarget().createLaunchParameters();
-                    launchParameters.setArguments(runArgs);
-                    compiler.launch(launchParameters);
-                } else {
-                    compiler.build();
-                    compiler.config.getTarget().install();
-                }
-            }
-        } catch (Throwable t) {
-            String message = t.getMessage();
-            if (verbose && !(t instanceof ExecuteException)) {
-                t.printStackTrace();
-            }
-            printAndExit(message);
-        }
-
+        return configBuilder;
     }
 
     /**

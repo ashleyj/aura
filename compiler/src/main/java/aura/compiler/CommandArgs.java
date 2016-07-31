@@ -23,6 +23,7 @@ public class CommandArgs {
 
     public static final String BOOTCLASSPATH = "b";
     public static final String BOOTCLASSPATH_LONG = "bootclasspath";
+    public static final String BUILD_AS_LIB_LONG = "buildlib";
     public static final String CACHE = "C";
     public static final String CACHE_LONG = "cache";
     public static final String CC_COMPILER = "cc";
@@ -237,6 +238,12 @@ public class CommandArgs {
                 .desc("Add resource to application bundle")
                 .longOpt(RESOURCES_LONG)
                 .hasArgs()
+                .build());
+
+        options.addOption(Option.builder()
+                .required(false)
+                .desc("Build as library. This will skip the linking process(assumes -I)")
+                .longOpt(BUILD_AS_LIB_LONG)
                 .build());
 
         options.addOption(Option.builder()

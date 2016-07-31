@@ -56,6 +56,12 @@ public interface Target {
      */
     Arch getArch();
 
+
+    /**
+     * Returns command line to build this {@link Target}
+     */
+    String getBuildArgs();
+
     /**
      * Returns a list of the default archs to build for if no archs have been
      * specified in the {@link Config}. Returns an empty list if there are no

@@ -109,6 +109,11 @@ public class ConfigBuilder {
         return this;
     }
 
+    public ConfigBuilder archive(boolean b) {
+        config.archive = true;
+        return this;
+    }
+
     public ConfigBuilder cacheDir(File cacheDir) {
         config.cacheDir = cacheDir;
         return this;
@@ -176,6 +181,7 @@ public class ConfigBuilder {
 
     public ConfigBuilder logger(Logger logger) {
         config.logger = logger;
+        config.verbose = true;
         return this;
     }
 
@@ -577,5 +583,11 @@ public class ConfigBuilder {
 
     public List<Plugin> getPlugins() {
         return config.getPlugins();
+    }
+
+    public void buildAsLibrary(boolean b) {
+        config.skipLinking = b;
+        config.dumpIntermediates = b;
+        config.buildAsLib = b;
     }
 }

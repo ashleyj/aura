@@ -148,6 +148,9 @@ public class ConfigBuilderArgParser extends ArgParser<ConfigBuilder> {
             case RESOURCES_LONG:
                  return setResources(configBuilder, option.getValuesList());
 
+            case BUILD_AS_LIB_LONG:
+                return setBuildAsLib(configBuilder);
+
             case TREESHAKE:
             case TREESHAKE_LONG:
                 return setTreeshake(configBuilder, option.getValue());
@@ -469,6 +472,12 @@ public class ConfigBuilderArgParser extends ArgParser<ConfigBuilder> {
         }));
         return configBuilder;
     }
+
+    public ConfigBuilder setBuildAsLib(ConfigBuilder configBuilder) {
+        configBuilder.buildAsLibrary(true);
+        return configBuilder;
+    }
+
 
     public boolean validateArgs(CommandLine cli) throws IllegalArgumentException {
        if (archive && run) {
