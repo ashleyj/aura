@@ -152,10 +152,12 @@ public class Linker {
 
         Arch arch = config.getArch();
         OS os = config.getOs();
-
         Set<Clazz> linkClasses = new TreeSet<Clazz>(classes);
-        config.getLogger().info("Linking %d classes (%s %s %s)", linkClasses.size(),
-                os, arch, config.isDebug() ? "debug" : "release");
+
+        if (!config.isBuildAsLib()) {
+            config.getLogger().info("Linking %d classes (%s %s %s)", linkClasses.size(),
+                    os, arch, config.isDebug() ? "debug" : "release");
+        }
 
         ModuleBuilder mb = new ModuleBuilder();
         mb.addInclude(getClass().getClassLoader().getResource(String.format("header-%s-%s.ll", os.getFamily(), arch)));
@@ -261,13 +263,10 @@ public class Linker {
             stubRefsArray.add(new ConstantBitcast(fn.ref(), I8_PTR));
         }
         stubRefsArray.add(new NullConstant(I8_PTR));
-        
         mb.addGlobal(new Global("_bcStrippedMethodStubs", stubRefsArray.build()));
-        
         Random rnd = new Random();
 
         buildTypeInfos(typeInfos);
-        
         Set<String> checkcasts = new HashSet<>();
         Set<String> instanceofs = new HashSet<>();
         Set<String> invokes = new HashSet<>();
@@ -282,7 +281,6 @@ public class Linker {
         for (Triple<String, String, String> node : config.getDependencyGraph().findReachableMethods()) {
             reachableMethods.add(node.getLeft() + "." + node.getMiddle() + node.getRight());
         }
-        
         int totalMethodCount = 0;
         int reachableMethodCount = 0;
         for (Clazz clazz : linkClasses) {

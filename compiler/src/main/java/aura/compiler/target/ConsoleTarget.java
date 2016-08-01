@@ -97,7 +97,12 @@ public class ConsoleTarget extends AbstractTarget {
             arch = Arch.getDefaultArch();
         }
     }
-    
+
+    @Override
+    public String getBuildCommand() {
+        return super.getBuildCommand();
+    }
+
     @Override
     protected void doBuild(File outFile, List<String> ccArgs,
             List<File> objectFiles, List<String> libArgs)

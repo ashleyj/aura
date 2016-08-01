@@ -41,6 +41,8 @@ import java.util.zip.ZipOutputStream;
  *
  */
 public abstract class AbstractTarget implements Target {
+    private String buildCommand = "";
+
     @Transient
     protected Config config;
 
@@ -87,18 +89,24 @@ public abstract class AbstractTarget implements Target {
     }
 
     public void build(List<File> objectFiles) throws IOException {
+        build(objectFiles, false);
+    }
+
+    public void build(List<File> objectFiles, boolean dryRun) throws IOException {
         File outFile = new File(config.getTmpDir(), config.getExecutableName());
-        
-        config.getLogger().info("Building %s binary %s", config.getTarget().getType(), outFile);
+
+        if (!config.isBuildAsLib()) {
+            config.getLogger().info("Building %s binary %s", config.getTarget().getType(), outFile);
+        }
         
         LinkedList<String> ccArgs = new LinkedList<String>();
         LinkedList<String> libs = new LinkedList<String>();
-        
+
         ccArgs.addAll(getTargetCcArgs());
         libs.addAll(getTargetLibs());
-        
+
         String libSuffix = config.isUseDebugLibs() ? "-dbg" : "";
-        
+
         libs.add("-laura-bc" + libSuffix);
         if (config.getOs().getFamily() == OS.Family.darwin) {
             libs.add("-force_load");
@@ -188,7 +196,7 @@ public abstract class AbstractTarget implements Target {
             ccArgs.add("-Wl,-dead_strip");
 
         }
-        
+
         if (config.getOs().getFamily() == OS.Family.darwin && !config.getFrameworks().isEmpty()) {
             for (String p : config.getFrameworks()) {
                 libs.add("-framework");
@@ -206,7 +214,7 @@ public abstract class AbstractTarget implements Target {
                 ccArgs.add("-F" + p.getAbsolutePath());
             }
         }
-        
+
         if (!config.getLibs().isEmpty()) {
             objectFiles = new ArrayList<File>(objectFiles);
             for (Config.Lib lib : config.getLibs()) {
@@ -224,7 +232,7 @@ public abstract class AbstractTarget implements Target {
                         if (lib.isForce()) {
                             libs.add("-Wl,--whole-archive");
                         }
-                        libs.add(new File(p).getAbsolutePath());            
+                        libs.add(new File(p).getAbsolutePath());
                         if (lib.isForce()) {
                             libs.add("-Wl,--no-whole-archive");
                         }
@@ -250,10 +258,45 @@ public abstract class AbstractTarget implements Target {
                 libs.add("MobileCoreServices");
             }
         }
-        
-        doBuild(outFile, ccArgs, objectFiles, libs);
+        buildCommand = flatten(ccArgs, objectFiles, libs);
+        if (!config.isSkipLinking()) {
+            doBuild(outFile, ccArgs, objectFiles, libs);
+        }
     }
-    
+
+    private String flatten(LinkedList<String> ccArgs, List<File> objectFiles, LinkedList<String> libs) throws IOException {
+        StringBuilder stringBuilder = new StringBuilder();
+        List<String> paths = new ArrayList<>();
+        boolean isDarwin = config.getOs().getFamily() == OS.Family.darwin;
+
+        boolean quote = !isDarwin;
+        for (File objectFile : objectFiles) {
+            paths.add((quote ? "\"" : "") + objectFile.getAbsolutePath() + (quote ? "\"" : ""));
+        }
+
+        File objectsFile = new File(config.getTmpDir(), "objects");
+        FileUtils.writeLines(objectsFile, paths, "\n");
+        stringBuilder.append("-Wl,-filelist,").append(objectsFile.getAbsolutePath()).append(" ");
+
+        for (String ccArg : ccArgs) {
+            stringBuilder.append(ccArg).append(" ");
+        }
+        if (config.getOs() == OS.macosx) {
+            stringBuilder.append("-mmacosx-version-min=" + config.getOs().getMinVersion());
+            if (config.getArch() == Arch.x86 || config.isDebug()) {
+                stringBuilder.append("-Wl,-no_pie");
+            }
+        }
+        stringBuilder.append(" ");
+        for (String lib : libs) {
+            stringBuilder.append(lib).append(" ");
+        }
+
+        stringBuilder.append("-I").append(config.getHome().getIncludeDir());
+
+        return stringBuilder.toString();
+    }
+
     protected void doBuild(File outFile, List<String> ccArgs, List<File> objectFiles, 
             List<String> libs) throws IOException {
         
@@ -580,5 +623,10 @@ public abstract class AbstractTarget implements Target {
         } finally {
             IOUtils.closeQuietly(out);
         }
+    }
+
+    @Override
+    public String getBuildCommand() {
+        return buildCommand;
     }
 }

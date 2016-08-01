@@ -310,15 +310,14 @@ public class AppCompiler {
             }
         }
 
-        if (config.isBuildAsLib()) {
-            /*TODO output compilation details */
-            return;
-        }
-
         long start = System.currentTimeMillis();
         linker.link(linkClasses);
         long duration = System.currentTimeMillis() - start;
-        config.getLogger().info("Linked %d classes in %.2f seconds", linkClasses.size(), duration / 1000.0);
+        if (config.isBuildAsLib()) {
+            System.out.println("\nBuild Args: " + config.getTarget().getBuildCommand());
+        } else {
+            config.getLogger().info("Linked %d classes in %.2f seconds", linkClasses.size(), duration / 1000.0);
+        }
     }
 
     public static void main(String[] args) throws IOException {

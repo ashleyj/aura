@@ -866,6 +866,7 @@ public class Config {
 
     public static class Home {
         private File binDir = null;
+        private File includeDir = null;
         private File libVmDir = null;
         private File rtPath = null;
         private Map<Cacerts, File> cacertsPath = null;
@@ -884,14 +885,16 @@ public class Config {
                 }
             }
             binDir = new File(homeDir, "bin");
+            includeDir = new File(homeDir, "include");
             libVmDir = new File(homeDir, "lib/vm");
             rtPath = new File(homeDir, "lib/aura-rt.jar");
             cacertsPath = new HashMap<Cacerts, File>();
             cacertsPath.put(Cacerts.full, new File(homeDir, "lib/cacerts-full.jar"));
         }
 
-        private Home(File devDir, File binDir, File libVmDir, File rtPath) {
+        private Home(File devDir, File binDir, File includeDir, File libVmDir, File rtPath) {
             this.binDir = binDir;
+            this.includeDir = includeDir;
             this.libVmDir = libVmDir;
             this.rtPath = rtPath;
             cacertsPath = new HashMap<Cacerts, File>();
@@ -906,6 +909,10 @@ public class Config {
 
         public File getBinDir() {
             return binDir;
+        }
+
+        public File getIncludeDir() {
+            return includeDir;
         }
 
         public File getLibVmDir() {
@@ -975,6 +982,10 @@ public class Config {
             if (!binDir.exists() || !binDir.isDirectory()) {
                 throw new IllegalArgumentException(error + "bin/ missing or invalid");
             }
+            File includeDir = new File(dir, "include");
+            if (!includeDir.exists() || !includeDir.isDirectory()) {
+                throw new IllegalArgumentException(error + "include/ missing or invalid");
+            }
             File libVmDir = new File(libDir, "vm");
             if (!libVmDir.exists() || !libVmDir.isDirectory()) {
                 throw new IllegalArgumentException(error + "lib/vm/ missing or invalid");
@@ -1020,6 +1031,11 @@ public class Config {
                 throw new IllegalArgumentException(error + "bin/ missing or invalid");
             }
 
+            File includeDir = new File(dir, "include");
+            if (!includeDir.exists() || !includeDir.isDirectory()) {
+                throw new IllegalArgumentException(error + "include/ missing or invalid");
+            }
+
             String rtJarName = "aura-rt-" + Version.getVersion() + ".jar";
             File rtJar = new File(dir, "rt/target/" + rtJarName);
             File rtClasses = new File(dir, "rt/target/classes/");
@@ -1033,7 +1049,7 @@ public class Config {
                 }
             }
 
-            return new Home(dir, binDir, vmBinariesDir, rtSource);
+            return new Home(dir, binDir, includeDir, vmBinariesDir, rtSource);
         }
     }
 

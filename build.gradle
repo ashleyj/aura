@@ -75,6 +75,10 @@ task distTargz( type: Tar) {
 		from ("vm/LICENSE.txt")
 	}
 
+	into ("${baseName}/include") {
+		from ("vm/core/include")
+	}
+
 	extension = 'tar.gz'
 	compression = Compression.GZIP
 }

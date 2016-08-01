@@ -121,4 +121,9 @@ public interface Target {
      * Initializes this {@link Target} from the specified {@link Config}.
      */
     void init(Config config);
+
+    /**
+     * Return build command
+     */
+    String getBuildCommand();
 }
