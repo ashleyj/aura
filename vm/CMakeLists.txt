@@ -1,13 +1,12 @@
 # The Mac OS X SDK version required when building the VM libs
 set(MACOSX_SDK_VERSION 10.11)
 # The minimum Mac OS X version needed by apps built by RoboVM
-set(MACOSX_MIN_VERSION 10.6)
+set(MACOSX_MIN_VERSION 10.7)
 
 cmake_minimum_required(VERSION 2.8.8)
 project(build)
 include(CheckCCompilerFlag)
 include(ExternalProject)
-include(${CMAKE_SOURCE_DIR}/MergeStaticLibObjectFiles.cmake)
 
 enable_testing()
 
@@ -128,7 +127,7 @@ if(SYSROOT)
   set(LD_FLAGS "${LD_FLAGS} -isysroot ${SYSROOT}")
 endif()
 if(MACOSX)
-  set(LD_FLAGS "${LD_FLAGS} -mmacosx-version-min=${MACOSX_MIN_VERSION}")
+  set(LD_FLAGS "${LD_FLAGS} -mmacosx-version-min=${MACOSX_MIN_VERSION} -Wl,-undefined -Wl,dynamic_lookup -flat_namespace")
 endif()
 
 #set(CMAKE_C_FLAGS_RELEASE "-O0 -g -pg")
@@ -183,9 +182,16 @@ elseif (ARCH STREQUAL "arm64")
   add_definitions(-DRVM_ARM64)
 endif()
 
-set(LIB_SUFFIX ".a")
+set(LIB_SUFFIX ".so")
 if (CMAKE_BUILD_TYPE STREQUAL "debug")
-  set(LIB_SUFFIX "-dbg.a")
+  set(LIB_SUFFIX "-dbg.so")
+endif()
+
+if (OS STREQUAL "macosx")
+    set(LIB_SUFFIX ".dylib")
+    if (CMAKE_BUILD_TYPE STREQUAL "debug")
+      set(LIB_SUFFIX "-dbg.dylib")
+    endif()
 endif()
 
 set(INSTALL_DIR ${CMAKE_SOURCE_DIR}/target/binaries/${OS}/${ARCH})
@@ -217,9 +223,9 @@ endif()
 set(EXTGC_C_FLAGS "${C_CXX_FLAGS} -DGC_DISABLE_INCREMENTAL -DGC_DISCOVER_TASK_THREADS -DGC_FORCE_UNMAP_ON_GCOLLECT -DMARK_DESCR_OFFSET=${EXTGC_MARK_DESCR_OFFSET}")
 set(EXTGC_LD_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
 if(DARWIN)
-  set(EXTGC_C_FLAGS "${EXTGC_C_FLAGS} -DNO_DYLD_BIND_FULLY_IMAGE")
+  set(EXTGC_C_FLAGS "${EXTGC_C_FLAGS}")
 endif()
-set(EXTGC_PARAMS  "--enable-shared=no --enable-munmap=1 --enable-parallel-mark=yes")
+set(EXTGC_PARAMS  "--enable-static=no --enable-munmap=1 --enable-parallel-mark=yes")
 if (CMAKE_BUILD_TYPE STREQUAL "debug")
   set(EXTGC_C_FLAGS "${EXTGC_C_FLAGS} -g")
   set(EXTGC_PARAMS "${EXTGC_PARAMS} --enable-gc-debug=yes")
@@ -240,7 +246,11 @@ ExternalProject_Add(extgc
   CONFIGURE_COMMAND bash -c "CC=${CMAKE_C_COMPILER} CFLAGS='${EXTGC_C_FLAGS}' LDFLAGS='${EXTGC_LD_FLAGS}' ./configure ${EXT_HOST} ${EXTGC_PARAMS} --prefix=${CMAKE_BINARY_DIR}/gc"
   BUILD_IN_SOURCE 1
 )
-install(FILES ${CMAKE_BINARY_DIR}/gc/lib/libgc.a DESTINATION ${INSTALL_DIR} RENAME libgc${LIB_SUFFIX})
+if(OS STREQUAL "macosx")
+    install(FILES ${CMAKE_BINARY_DIR}/gc/lib/libgc.1.dylib ${CMAKE_BINARY_DIR}/gc/lib/libgc.dylib DESTINATION ${INSTALL_DIR})
+else()
+    install(FILES ${CMAKE_BINARY_DIR}/gc/lib/libgc.so.1 ${CMAKE_BINARY_DIR}/gc/lib/libgc.so DESTINATION ${INSTALL_DIR})
+endif()
 
 add_subdirectory(core/src)
 add_subdirectory(debug/src)

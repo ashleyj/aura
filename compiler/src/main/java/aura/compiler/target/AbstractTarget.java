@@ -107,23 +107,22 @@ public abstract class AbstractTarget implements Target {
 
         String libSuffix = config.isUseDebugLibs() ? "-dbg" : "";
 
-        libs.add("-laura-bc" + libSuffix);
+	 libs.add("-laura-bc" + libSuffix);
         if (config.getOs().getFamily() == OS.Family.darwin) {
-            libs.add("-force_load");
-            libs.add(new File(config.getOsArchDepLibDir(), "libaura-rt" + libSuffix + ".a").getAbsolutePath());
+            libs.add("-laura-rt" + libSuffix);
         } else {
             libs.addAll(Arrays.asList("-Wl,--whole-archive", "-laura-rt" + libSuffix, "-Wl,--no-whole-archive"));
         }
         if (config.isSkipInstall()) {
             libs.add("-laura-debug" + libSuffix);
         }
-		if (config.getOs().getFamily() == OS.Family.freebsd) {
-			libs.addAll(Arrays.asList(
-					"-laura-core" + libSuffix, "-lgc" + libSuffix, "-lpthread", "-lc","-lm","-lc++", "-lssl", "-lcrypto", "-Wall", "-Wextra", "-Wl"));
-		} else {
-			libs.addAll(Arrays.asList(
-					"-laura-core" + libSuffix, "-lgc" + libSuffix, "-lpthread", "-ldl", "-lm", "-lz"));
-		}
+	if (config.getOs().getFamily() == OS.Family.freebsd) {
+		libs.addAll(Arrays.asList(
+				"-laura-core" + libSuffix, "-lgc" + libSuffix, "-lpthread", "-lc","-lm","-lc++", "-lssl", "-lcrypto", "-Wall", "-Wextra", "-Wl"));
+	}  else {
+		libs.addAll(Arrays.asList(
+				"-laura-core" + libSuffix, "-lgc" + libSuffix, "-lpthread", "-ldl", "-lm", "-lz"));
+	}
         if (config.getOs().getFamily() == OS.Family.linux) {
             libs.add("-lrt");
         }
@@ -141,6 +140,7 @@ public abstract class AbstractTarget implements Target {
         List<String> exportedSymbols = new ArrayList<String>();
         exportedSymbols.addAll(getTargetExportedSymbols());
         exportedSymbols.add("JNI_OnLoad_*");
+        exportedSymbols.add("*");
         exportedSymbols.addAll(config.getExportedSymbols());
 
         if (config.getOs().getFamily() == OS.Family.linux || config.getOs() == OS.freebsd) {

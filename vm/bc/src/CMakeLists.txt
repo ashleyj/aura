@@ -6,7 +6,7 @@ if (WITH_FPIC)
   remove_definitions(-fPIC)
 endif()
 
-add_library(aura-bc STATIC 
+add_library(aura-bc SHARED 
   bc.c
   classinfo.c
   MurmurHash3.c

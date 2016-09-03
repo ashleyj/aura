@@ -50,14 +50,14 @@ if(FREEBSD)
 	set_property(SOURCE proxy.c PROPERTY COMPILE_FLAGS "-I/usr/local/include")
 ENDIF()
 
-add_library(aura-core STATIC ${SRC})
+add_library(aura-core SHARED ${SRC})
 add_dependencies(aura-core extgc)
 
 set_target_properties(aura-core PROPERTIES SUFFIX "${LIB_SUFFIX}")
 install(TARGETS aura-core DESTINATION ${INSTALL_DIR})
 
 add_executable(test_call0 test/test_call0.c test/CuTest.c call0-${OS_FAMILY}-${ARCH}.s unwind.c)
-add_library(test_call0_lib STATIC test/test_call0.c test/CuTest.c call0-${OS_FAMILY}-${ARCH}.s unwind.c)
+add_library(test_call0_lib SHARED test/test_call0.c test/CuTest.c call0-${OS_FAMILY}-${ARCH}.s unwind.c)
 set_property(SOURCE test/test_call0.c PROPERTY COMPILE_FLAGS "-O0") # Disable optimizations
 add_test(testCall0ReturnByte test_call0 "testCall0ReturnByte")
 add_test(testCall0ReturnInt test_call0 "testCall0ReturnInt")
