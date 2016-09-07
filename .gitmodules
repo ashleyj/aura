@@ -10,7 +10,7 @@
 	url = https://github.com/ivmai/libatomic_ops.git
 [submodule "vm/extgc"]
 	path = vm/extgc
-	url = git://github.com/robovm/bdwgc.git
+	url = https://github.com/ashleyj/bdwgc
 [submodule "llvm/extllvm"]
 	path = llvm/extllvm
 	url = git://github.com/llvm-mirror/llvm.git
