@@ -13,7 +13,7 @@
 	url = git://github.com/robovm/bdwgc.git
 [submodule "llvm/extllvm"]
 	path = llvm/extllvm
-	url = git://github.com/robovm/llvm.git
+	url = git://github.com/llvm-mirror/llvm.git
 [submodule "llvm/extclang"]
 	path = llvm/extclang
-	url = git://github.com/robovm/clang.git
+	url = git://github.com/llvm-mirror/clang.git
