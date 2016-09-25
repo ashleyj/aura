@@ -408,10 +408,23 @@ ObjectArray* rvmCallStackToStackTraceElements(Env* env, CallStack* callStack, ji
             if (rvmExceptionOccurred(env)) {
                 return NULL;
             }
-            args[3].i = frame->lineNumber;
-            array->values[i] = rvmNewObjectA(env, java_lang_StackTraceElement, 
+			//
+			// Merged from https://github.com/MobiDevelop/robovm
+			//
+			//New method of getting lineNumbers via shadowframes
+            ShadowFrame* shadowFrame = env->shadowFrame;
+            while (shadowFrame != NULL) {
+                if (shadowFrame->functionAddress == m->impl) {
+                    args[3].i = shadowFrame->lineNumber;
+                    break;
+                }
+                shadowFrame = shadowFrame->prev;
+            }
+
+            array->values[i] = rvmNewObjectA(env, java_lang_StackTraceElement,
                 java_lang_StackTraceElement_constructor, args);
             if (!array->values[i]) return NULL;
+			// end merge
         }
     }
 

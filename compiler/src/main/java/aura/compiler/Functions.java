@@ -155,6 +155,12 @@ public class Functions {
     public static final FunctionRef PUSH_NATIVE_FRAME = new FunctionRef("pushNativeFrame", new FunctionType(Type.VOID, Types.ENV_PTR));
     public static final FunctionRef POP_NATIVE_FRAME = new FunctionRef("popNativeFrame", new FunctionType(Type.VOID, Types.ENV_PTR));
     public static final FunctionRef GETPC = new FunctionRef("getpc", new FunctionType(Type.I8_PTR));
+	/* Merged from https://github.com/MobiDevelop/robovm */
+    public static final FunctionRef PUSH_SHADOW_FRAME = new FunctionRef("rvmPushShadowFrame", new FunctionType(Type.VOID, Types.ENV_PTR, Type.I8_PTR, Type.I8_PTR));
+    public static final FunctionRef POP_SHADOW_FRAME = new FunctionRef("rvmPopShadowFrame", new FunctionType(Type.VOID, Types.ENV_PTR));
+    public static final FunctionRef PUSH_SHADOW_LINE_NUMBER = new FunctionRef("rvmPushShadowFrameLineNumber", new FunctionType(Type.VOID, Types.ENV_PTR, Type.I32));
+	/* end merge */
+
 
     public static FunctionRef getArrayLoad(soot.Type sootType) {
         if (sootType.equals(soot.BooleanType.v())) {

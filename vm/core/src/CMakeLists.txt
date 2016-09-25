@@ -27,6 +27,8 @@ set(SRC
   trycatch-${OS_FAMILY}-${ARCH}.s
   unwind.c
   hooks.c
+  # From https://github.com/MobiDevelop/robovm
+  shadowframes.c
 )
 
 if(DARWIN)

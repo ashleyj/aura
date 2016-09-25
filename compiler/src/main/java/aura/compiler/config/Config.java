@@ -27,6 +27,7 @@ import aura.compiler.log.Logger;
 import aura.compiler.plugin.*;
 import aura.compiler.plugin.annotation.AnnotationImplPlugin;
 import aura.compiler.plugin.lambda.LambdaPlugin;
+import aura.compiler.plugin.shadowframe.ShadowFramePlugin;
 import aura.compiler.target.ConsoleTarget;
 import aura.compiler.target.Target;
 import aura.compiler.util.DigestUtil;
@@ -186,7 +187,8 @@ public class Config {
         // Add standard plugins
         this.plugins.addAll(0, Arrays.asList(
                 new AnnotationImplPlugin(),
-                new LambdaPlugin()
+                new LambdaPlugin(),
+                new ShadowFramePlugin()
                 ));
         this.loadPluginsFromClassPath();
     }

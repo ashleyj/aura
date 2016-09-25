@@ -466,6 +466,21 @@ struct TrycatchContext {
 #endif
 };
 
+// Merge from https://github.com/MobiDevelop/robovm
+typedef struct ShadowFrame {
+    struct ShadowFrame* prev;
+    void* functionAddress;
+    jint lineNumber;
+    void* functionName;
+} ShadowFrame;
+
+typedef struct ThreadShadowFrame {
+  pthread_t thread;
+  ShadowFrame* shadowFrame;
+} ThreadShadowFrame;
+
+// end merge
+
 struct Env {
     JNIEnv jni;
     VM* vm;
@@ -476,6 +491,10 @@ struct Env {
     GatewayFrame* gatewayFrames;
     TrycatchContext* trycatchContext;
     jint attachCount;
+	// Merge from https://github.com/MobiDevelop/robovm
+	ShadowFrame* shadowFrame;
+	ThreadShadowFrame threadFrames[20];
+	// end merge
 };
 
 typedef struct DebugGcRoot {

@@ -115,6 +115,13 @@ declare i8* @_bcCopyStruct(%Env*, i8*, i32)
 
 declare void @_bcHookInstrumented(%Env*, i32, i32, i8*, i8*)
 
+; Merge from https://github.com/MobiDevelop/robovm
+declare void @rvmPushShadowFrame(%Env*, i8*)
+declare void @rvmPopShadowFrame(%Env*)
+declare void @rvmPushShadowFrameLineNumber(%Env*, i32)
+;end merge
+
+
 declare i8* @llvm.frameaddress(i32) nounwind readnone
 declare void @llvm.memcpy.p0i8.p0i8.i32(i8*, i8*, i32, i32, i1)
 declare void @llvm.memmove.p0i8.p0i8.i64(i8*, i8*, i64, i32, i1)

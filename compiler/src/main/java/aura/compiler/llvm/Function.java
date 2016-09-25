@@ -155,6 +155,31 @@ public class Function {
         getCurrentBasicBlock().add(instruction);
         return instruction;
     }
+
+	/* Merged from https://github.com/MobiDevelop/robovm*/
+	public String getSignature() {
+        String sig = type.getReturnType().toString() + " (";
+        Type[] parameterTypes = type.getParameterTypes();
+        for (int i = 0; i < parameterTypes.length; i++) {
+            if (i > 0) {
+                sig += ", ";
+            }
+            sig += parameterTypes[i].toString();
+            if (parameterAttributes[i] != null) {
+                for (ParameterAttribute attrib : parameterAttributes[i]) {
+                    sig += ' ';
+                    sig += attrib.toString();
+                }
+            }            
+        }
+        if (type.isVarargs()) {
+            sig += ", ...";
+        }
+        sig += ")";
+        return sig;
+    }
+
+	/* end merge */
     
     public void write(Writer writer) throws IOException {
         Type returnType = type.getReturnType();
