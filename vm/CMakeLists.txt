@@ -1,5 +1,3 @@
-# The Mac OS X SDK version required when building the VM libs
-set(MACOSX_SDK_VERSION 10.11)
 # The minimum Mac OS X version needed by apps built by RoboVM
 set(MACOSX_MIN_VERSION 10.7)
 
@@ -84,9 +82,9 @@ if(DARWIN)
   if(NOT SYSROOT)
     exec_program(xcode-select ARGS --print-path OUTPUT_VARIABLE XCODE_PATH)
     if(MACOSX)
-      set(SYSROOT "${XCODE_PATH}/Platforms/MacOSX.platform/Developer/SDKs/MacOSX${MACOSX_SDK_VERSION}.sdk")
+      set(SYSROOT "${XCODE_PATH}/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk")
       if(NOT IS_DIRECTORY ${SYSROOT})
-        message(FATAL_ERROR "Failed to locate MacOSX SDK ${MACOSX_SDK_VERSION}")
+        message(FATAL_ERROR "Failed to locate MacOSX SDK")
       endif()
     endif()
   endif()
