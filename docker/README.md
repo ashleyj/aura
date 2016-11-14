@@ -1,5 +1,6 @@
 # Build docker container
 $ cd docker
+
 $ docker build -t aura-docker . --no-cache
 
 # Run docker container
@@ -10,4 +11,5 @@ $ git clone --recursive git://github.com/ashleyj/aura
 
 # Build
 $ cd aura
+
 $ vm/build.sh
